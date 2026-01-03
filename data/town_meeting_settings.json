@@ -1,0 +1,61 @@
+{
+    "departments": [
+        {
+            "id": "town-council",
+            "name": "Town Council",
+            "viewId": "229",
+            "boardMembers": [
+                {
+                    "name": "Jim Kuretski",
+                    "role": "Mayor"
+                },
+                {
+                    "name": "Ronnie Doane",
+                    "role": "Vice Mayor"
+                },
+                {
+                    "name": "Cheryl Schneider",
+                    "role": "Council Member"
+                },
+                {
+                    "name": "Cameron May",
+                    "role": "Council Member"
+                },
+                {
+                    "name": "Malise Sundstrom",
+                    "role": "Council Member"
+                }
+            ]
+        },
+        {
+            "id": "planning-board",
+            "name": "Planning Board",
+            "viewId": "419",
+            "boardMembers": []
+        },
+        {
+            "id": "commissioners",
+            "name": "Commissioners Meetings",
+            "viewId": "232",
+            "boardMembers": []
+        },
+        {
+            "id": "city-council",
+            "name": "City Council",
+            "viewId": "231",
+            "boardMembers": []
+        },
+        {
+            "id": "school-board",
+            "name": "School Board",
+            "viewId": "201",
+            "boardMembers": []
+        },
+        {
+            "id": "board-meetings",
+            "name": "Board Meetings",
+            "viewId": "500",
+            "boardMembers": []
+        }
+    ]
+}

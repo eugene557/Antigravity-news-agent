@@ -1,0 +1,77 @@
+{
+  "metadata": {
+    "videoId": "364353",
+    "generatedAt": "2026-01-02T23:55:02.705Z"
+  },
+  "ideas": [
+    {
+      "id": "1",
+      "event": "City Council Approves New Public Park",
+      "title": "City Council Greenlights New Public Park Development",
+      "summary": "The City Council's decision to approve the development of a new public park is a significant move towards enhancing community spaces and promoting outdoor activities for residents.",
+      "angles": [
+        {
+          "name": "Community Impact",
+          "description": "Explore how the new park will benefit residents and the local community, including potential recreational and social opportunities.",
+          "prompt_hint": "Focus on how the park will serve as a community hub and enhance local residents' quality of life."
+        },
+        {
+          "name": "Environmental Benefits",
+          "description": "Discuss the environmental advantages of creating more green spaces in urban areas, such as improved air quality and biodiversity.",
+          "prompt_hint": "Highlight the ecological benefits of increasing urban green spaces."
+        },
+        {
+          "name": "Economic Implications",
+          "description": "Analyze how the park development might influence local businesses and property values, potentially boosting the local economy.",
+          "prompt_hint": "Examine the economic impact and potential growth opportunities resulting from the new park."
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "event": "School Board Introduces New STEM Program",
+      "title": "Innovative STEM Program Launched in Local Schools",
+      "summary": "The introduction of a new STEM program in local schools aims to enhance students' educational experience and prepare them for future careers in technology and science fields.",
+      "angles": [
+        {
+          "name": "Educational Advancement",
+          "description": "Detail how the STEM program will improve educational outcomes and equip students with essential skills for the future.",
+          "prompt_hint": "Focus on the educational benefits and the enhancement of student learning experiences."
+        },
+        {
+          "name": "Career Readiness",
+          "description": "Explore how the program prepares students for future job markets, particularly in science and technology sectors.",
+          "prompt_hint": "Emphasize the program's role in preparing students for STEM careers."
+        },
+        {
+          "name": "Community Support",
+          "description": "Highlight community involvement and support for the program, including any partnerships with local businesses or organizations.",
+          "prompt_hint": "Discuss how community stakeholders are supporting and benefiting from the STEM initiative."
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "event": "Local Hospital Expands Emergency Services",
+      "title": "Local Hospital Expands Emergency Services to Meet Growing Demand",
+      "summary": "The expansion of emergency services at the local hospital addresses the increasing healthcare needs of the community, improving access to critical medical care.",
+      "angles": [
+        {
+          "name": "Healthcare Accessibility",
+          "description": "Examine how the expansion improves access to emergency healthcare for residents, reducing wait times and enhancing service quality.",
+          "prompt_hint": "Investigate the impact of expanded services on patient access and healthcare delivery."
+        },
+        {
+          "name": "Infrastructure Development",
+          "description": "Discuss the infrastructural improvements and investments made to accommodate expanded emergency services.",
+          "prompt_hint": "Focus on the infrastructural changes and investments involved in the expansion."
+        },
+        {
+          "name": "Community Health Outcomes",
+          "description": "Analyze how the expansion might lead to better health outcomes for the community, potentially reducing mortality and improving overall public health.",
+          "prompt_hint": "Consider the potential improvements in community health outcomes due to the expanded services."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+#!/usr/bin/env node
+
+/**
+ * Town Meeting Idea Generator
+ *
+ * Scans a meeting transcript and suggests 5-10 article ideas,
+ * each with multiple possible angles for different types of coverage.
+ */
+
+import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, '../../.env') });
+
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY
+});
+
+async function loadTranscript(transcriptPath) {
+    const content = fs.readFileSync(transcriptPath, 'utf-8');
+    return JSON.parse(content);
+}
+
+async function generateIdeas(transcriptText) {
+    console.log('💡 Generating article ideas from transcript...');
+
+    const systemPrompt = `You are a savvy local news editor. 
+Review the meeting transcript and identify the most newsworthy events.
+For each event, suggest a compelling article idea.
+For each idea, provide 2-3 different "angles" or hooks that a reporter could use.
+
+Return a JSON object with this structure:
+{
+  "ideas": [
+    {
+      "id": "guid-or-number",
+      "event": "Brief description of the specific event/decision",
+      "title": "Working Headline for the idea",
+      "summary": "1-2 sentence explanation of why this matters to locals",
+      "angles": [
+        {
+          "name": "Hook/Angle Name (e.g., Fiscal Responsibility, Community Impact, Looking Forward)",
+          "description": "Short description of this specific coverage angle",
+          "prompt_hint": "A short hint for the next LLM call to focus on this angle"
+        }
+      ]
+    }
+  ]
+}`;
+
+    const response = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `Analyze this transcript for article ideas:\n\n${transcriptText.substring(0, 50000)}` } // Cap for safety
+        ],
+        temperature: 0.7,
+        response_format: { type: 'json_object' }
+    });
+
+    return JSON.parse(response.choices[0].message.content);
+}
+
+async function main() {
+    const transcriptPath = process.argv[2];
+    const outputPath = process.argv[3];
+
+    if (!transcriptPath) {
+        console.error('Usage: node generate_ideas.js <transcript_path> [output_path]');
+        process.exit(1);
+    }
+
+    try {
+        const transcript = await loadTranscript(transcriptPath);
+        const result = await generateIdeas(transcript.fullText);
+
+        const output = {
+            metadata: {
+                videoId: transcript.videoId,
+                generatedAt: new Date().toISOString()
+            },
+            ...result
+        };
+
+        const finalOutputPath = outputPath || transcriptPath.replace('_transcript.json', '_ideas.json');
+        fs.writeFileSync(finalOutputPath, JSON.stringify(output, null, 2));
+        console.log(`✅ Ideas saved to: ${finalOutputPath}`);
+
+    } catch (error) {
+        console.error('❌ Error:', error.message);
+        process.exit(1);
+    }
+}
+
+main();

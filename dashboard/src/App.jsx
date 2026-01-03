@@ -243,12 +243,15 @@ function App() {
   const [selectedDeptId, setSelectedDeptId] = useState('town-council');
   const [ideas, setIdeas] = useState({ ideas: [] });
   const [meetings, setMeetings] = useState([]);
+  const [upcomingMeetings, setUpcomingMeetings] = useState([]);
+  const [showAddMeetingModal, setShowAddMeetingModal] = useState(false);
+  const [upcomingViewMode, setUpcomingViewMode] = useState('list'); // 'list' or 'calendar'
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   // Navigation State
   const [viewSource, setViewSource] = useState('town-meeting'); // Default to Town Hall MVP
-  const [townHallView, setTownHallView] = useState('meetings'); // 'meetings' or 'articles'
+  const [townHallView, setTownHallView] = useState('meetings'); // 'meetings', 'articles', or 'upcoming'
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
@@ -260,6 +263,9 @@ function App() {
 
   // Toast notifications
   const [toasts, setToasts] = useState([]);
+
+  // Centered result modal (replaces toast for agent results)
+  const [resultModal, setResultModal] = useState(null);
 
   // Track previous running state to detect completion
   const [prevRunning, setPrevRunning] = useState({
@@ -306,10 +312,12 @@ function App() {
       fetchSettings();
       fetchIdeas();
       fetchMeetings();
+      fetchUpcomingMeetings();
       const interval = setInterval(() => {
         fetchAgentStatus();
         fetchIdeas();
         fetchMeetings();
+        fetchUpcomingMeetings();
       }, 5000);
       return () => clearInterval(interval);
     } else {
@@ -317,31 +325,38 @@ function App() {
     }
   }, [isAuthenticated]);
 
-  // Detect when agents complete and show toast
+  // Detect when agents complete and show modal
   useEffect(() => {
     // Crime Watch completed
     if (prevRunning.crimeWatch && !agentStatus.crimeWatch.running) {
       if (agentStatus.crimeWatch.error) {
-        addToast('error', 'Crime Watch', agentStatus.crimeWatch.error);
+        setResultModal({ type: 'error', title: 'Crime Watch Failed', message: agentStatus.crimeWatch.error });
       } else if (agentStatus.crimeWatch.lastResult) {
         const result = agentStatus.crimeWatch.lastResult;
-        addToast(result.type, 'Crime Watch', result.message);
-        if (result.count > 0) fetchArticles(); // Refresh if new articles
+        setResultModal({ type: result.type, title: 'Crime Watch Complete', message: result.message, count: result.count });
+        if (result.count > 0) fetchArticles();
       } else {
-        addToast('success', 'Crime Watch', 'Agent completed successfully');
+        setResultModal({ type: 'success', title: 'Crime Watch Complete', message: 'Agent completed successfully' });
       }
     }
 
     // Town Meeting completed
     if (prevRunning.townMeeting && !agentStatus.townMeeting.running) {
       if (agentStatus.townMeeting.error) {
-        addToast('error', 'Town Meeting', agentStatus.townMeeting.error);
+        setResultModal({ type: 'error', title: 'Meeting Agent Failed', message: agentStatus.townMeeting.error });
       } else if (agentStatus.townMeeting.lastResult) {
         const result = agentStatus.townMeeting.lastResult;
-        addToast(result.type, 'Town Meeting', result.message);
-        if (result.count > 0) fetchArticles(); // Refresh if new articles
+        const message = result.count > 0
+          ? `Meeting processed: ${result.count} ideas found`
+          : result.message || 'No new meetings to process';
+        setResultModal({ type: result.type, title: 'Meeting Agent Complete', message, count: result.count });
+        if (result.count > 0) {
+          fetchArticles();
+          fetchMeetings();
+          fetchIdeas();
+        }
       } else {
-        addToast('success', 'Town Meeting', 'Agent completed successfully');
+        setResultModal({ type: 'success', title: 'Meeting Agent Complete', message: 'Agent completed successfully' });
       }
     }
 
@@ -427,7 +442,50 @@ function App() {
       const data = await res.json();
       setMeetings(data.meetings || []);
     } catch (err) {
-      console.error('Failed to fetch ideas:', err);
+      console.error('Failed to fetch meetings:', err);
+    }
+  }
+
+  async function fetchUpcomingMeetings() {
+    try {
+      const res = await fetch(`${API_URL}/agents/town-meeting/upcoming`);
+      const data = await res.json();
+      setUpcomingMeetings(data.upcoming || []);
+    } catch (err) {
+      console.error('Failed to fetch upcoming meetings:', err);
+    }
+  }
+
+  async function handleAddMeeting(meetingData) {
+    try {
+      const res = await fetch(`${API_URL}/agents/town-meeting/meetings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(meetingData)
+      });
+      if (!res.ok) throw new Error('Failed to create meeting');
+
+      addToast('success', 'Meeting Added', 'Upcoming meeting created successfully');
+      fetchMeetings();
+      fetchUpcomingMeetings();
+    } catch (err) {
+      console.error(err);
+      addToast('error', 'Error', 'Failed to add meeting');
+    }
+  }
+
+  async function handleDeleteUpcoming(meetingId) {
+    try {
+      const res = await fetch(`${API_URL}/agents/town-meeting/upcoming/${meetingId}`, {
+        method: 'DELETE'
+      });
+      if (!res.ok) throw new Error('Failed to delete meeting');
+
+      addToast('success', 'Meeting Deleted', 'Upcoming meeting removed');
+      fetchUpcomingMeetings();
+    } catch (err) {
+      console.error(err);
+      addToast('error', 'Error', 'Failed to delete meeting');
     }
   }
 
@@ -601,6 +659,19 @@ function App() {
               Meetings
             </button>
             <button
+              className={`nav-item nav-sub ${!showSettings && viewSource === 'town-meeting' && townHallView === 'upcoming' ? 'active' : ''}`}
+              onClick={() => {
+                setViewSource('town-meeting');
+                setTownHallView('upcoming');
+                setShowSettings(false);
+                setSelectedMeeting(null);
+                setSelectedIdea(null);
+                setSelectedArticle(null);
+              }}
+            >
+              Upcoming {upcomingMeetings.length > 0 && <span className="badge">{upcomingMeetings.length}</span>}
+            </button>
+            <button
               className={`nav-item nav-sub ${!showSettings && viewSource === 'town-meeting' && townHallView === 'articles' ? 'active' : ''}`}
               onClick={() => {
                 setViewSource('town-meeting');
@@ -635,7 +706,7 @@ function App() {
               <span className="user-email">{user?.email || ''}</span>
             </div>
           </div>
-          <button className="btn-refresh" onClick={() => { fetchArticles(); fetchAgentStatus(); fetchIdeas(); fetchMeetings(); }}>
+          <button className="btn-refresh" onClick={() => { fetchArticles(); fetchAgentStatus(); fetchIdeas(); fetchMeetings(); fetchUpcomingMeetings(); }}>
             Refresh Data
           </button>
         </div>
@@ -681,24 +752,29 @@ function App() {
                 <div className="feed-title-block">
                   <h2>
                     {townHallView === 'meetings' && 'Meetings'}
+                    {townHallView === 'upcoming' && 'Upcoming Meetings'}
                     {townHallView === 'articles' && 'Articles'}
                   </h2>
                 </div>
                 <div className="feed-actions">
-                  <CustomDropdown
-                    options={settings?.departments.map(dept => ({
-                      value: dept.id,
-                      label: dept.name
-                    })) || []}
-                    value={selectedDeptId}
-                    onChange={setSelectedDeptId}
-                    placeholder="Select Department"
-                  />
-                  <AgentControl
-                    name="Meeting Agent"
-                    status={agentStatus.townMeeting}
-                    onRun={() => runAgent('town-meeting')}
-                  />
+                  {townHallView !== 'upcoming' && (
+                    <CustomDropdown
+                      options={settings?.departments.map(dept => ({
+                        value: dept.id,
+                        label: dept.name
+                      })) || []}
+                      value={selectedDeptId}
+                      onChange={setSelectedDeptId}
+                      placeholder="Select Department"
+                    />
+                  )}
+                  {townHallView !== 'upcoming' && (
+                    <AgentControl
+                      name="Meeting Agent"
+                      status={agentStatus.townMeeting}
+                      onRun={() => runAgent('town-meeting')}
+                    />
+                  )}
                 </div>
               </div>
             </header>
@@ -710,6 +786,16 @@ function App() {
                   ideas={ideas.ideas}
                   meetings={meetings}
                   onSelectMeeting={setSelectedMeeting}
+                  onAddMeeting={() => setShowAddMeetingModal(true)}
+                />
+              ) : viewSource === 'town-meeting' && townHallView === 'upcoming' ? (
+                <UpcomingMeetingsView
+                  meetings={upcomingMeetings}
+                  departments={settings?.departments}
+                  viewMode={upcomingViewMode}
+                  onViewModeChange={setUpcomingViewMode}
+                  onAddMeeting={() => setShowAddMeetingModal(true)}
+                  onDeleteMeeting={handleDeleteUpcoming}
                 />
               ) : (
                 <>
@@ -769,6 +855,22 @@ function App() {
           />
         )}
       </main>
+
+      {showAddMeetingModal && (
+        <AddMeetingModal
+          onClose={() => setShowAddMeetingModal(false)}
+          onAdd={handleAddMeeting}
+          departments={settings?.departments}
+        />
+      )}
+
+      {/* Result Modal */}
+      {resultModal && (
+        <ResultModal
+          result={resultModal}
+          onClose={() => setResultModal(null)}
+        />
+      )}
     </div>
   );
 }
@@ -802,6 +904,29 @@ function ToastContainer({ toasts, onRemove }) {
   );
 }
 
+function ResultModal({ result, onClose }) {
+  useEffect(() => {
+    // Auto-close after 5 seconds
+    const timer = setTimeout(onClose, 5000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className="result-modal-overlay" onClick={onClose}>
+      <div className={`result-modal result-modal-${result.type}`} onClick={e => e.stopPropagation()}>
+        <div className="result-modal-icon">
+          {result.type === 'success' && '✓'}
+          {result.type === 'info' && 'ℹ'}
+          {result.type === 'error' && '✕'}
+        </div>
+        <h2 className="result-modal-title">{result.title}</h2>
+        <p className="result-modal-message">{result.message}</p>
+        <button className="result-modal-close" onClick={onClose}>Got it</button>
+      </div>
+    </div>
+  );
+}
+
 function AgentControl({ name, status, onRun }) {
   return (
     <div className="agent-control">
@@ -819,6 +944,12 @@ function AgentControl({ name, status, onRun }) {
       >
         {status.running ? 'Running...' : `Run ${name}`}
       </button>
+      {status.running && (
+        <div className="agent-progress-overlay">
+          <div className="agent-progress-bar" />
+          <span className="agent-progress-text">This may take 10-15 min for new meetings</span>
+        </div>
+      )}
       {status.error && <div className="agent-error-tooltip">{status.error}</div>}
     </div>
   );
@@ -1309,7 +1440,345 @@ function IdeaReview({ idea, onGenerate, onClose }) {
   );
 }
 
-function MeetingListView({ department, ideas, meetings, onSelectMeeting }) {
+function AddMeetingModal({ onClose, onAdd, departments }) {
+  const [date, setDate] = useState('');
+  const [departmentId, setDepartmentId] = useState('town-council');
+  const [description, setDescription] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleDepartmentChange = (newDeptId) => {
+    setDepartmentId(newDeptId);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!date) return;
+    setLoading(true);
+    const dept = departments?.find(d => d.id === departmentId);
+    await onAdd({ date, type: dept?.name || departmentId, departmentId, description: description.trim() || null });
+    setLoading(false);
+    onClose();
+  };
+
+  // Fallback departments if none provided
+  const fallbackDepartments = [
+    { id: 'town-council', name: 'Town Council' },
+    { id: 'planning-board', name: 'Planning Board' },
+    { id: 'commissioners', name: 'Commissioners Meetings' }
+  ];
+
+  const deptList = departments && departments.length > 0 ? departments : fallbackDepartments;
+  const departmentOptions = deptList.map(dept => ({
+    value: dept.id,
+    label: dept.name
+  }));
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-card">
+        <div className="modal-header">
+          <h2>Add Upcoming Meeting</h2>
+          <button className="btn-close" onClick={onClose}>×</button>
+        </div>
+        <form onSubmit={handleSubmit} className="modal-form">
+          <div className="form-group">
+            <label>Date</label>
+            <input
+              type="date"
+              value={date}
+              onChange={e => setDate(e.target.value)}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Department</label>
+            <CustomDropdown
+              options={departmentOptions}
+              value={departmentId}
+              onChange={handleDepartmentChange}
+              placeholder="Select Department"
+            />
+          </div>
+          <div className="form-group">
+            <label>Description (optional)</label>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="e.g., Budget hearing, Zoning vote, Special session..."
+              rows={2}
+            />
+          </div>
+          <div className="modal-actions">
+            <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn-primary" disabled={loading}>
+              {loading ? 'Adding...' : 'Add Meeting'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function UpcomingMeetingsView({ meetings, departments, viewMode, onViewModeChange, onAddMeeting, onDeleteMeeting }) {
+  // Calendar navigation state - start with current month
+  const today = new Date();
+  const [currentMonth, setCurrentMonth] = useState({
+    year: today.getFullYear(),
+    month: today.getMonth() + 1 // 1-indexed
+  });
+
+  // Format date for display
+  const formatDate = (dateStr) => {
+    if (!dateStr) return { month: '---', day: '--', weekday: '', full: '' };
+    const date = new Date(dateStr + 'T12:00:00'); // Add time to avoid timezone issues
+    const month = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+    const day = date.getDate();
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'short' });
+    const full = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    return { month, day, weekday, full };
+  };
+
+  // Get department name from ID
+  const getDeptName = (deptId) => {
+    const dept = departments?.find(d => d.id === deptId);
+    return dept?.name || deptId || 'Meeting';
+  };
+
+  // Enrich meetings with formatted data
+  const enrichedMeetings = meetings.map(meeting => ({
+    ...meeting,
+    name: getDeptName(meeting.departmentId),
+    dateFormatted: formatDate(meeting.date)
+  }));
+
+  // Navigate months
+  const goToPrevMonth = () => {
+    setCurrentMonth(prev => {
+      if (prev.month === 1) {
+        return { year: prev.year - 1, month: 12 };
+      }
+      return { ...prev, month: prev.month - 1 };
+    });
+  };
+
+  const goToNextMonth = () => {
+    setCurrentMonth(prev => {
+      if (prev.month === 12) {
+        return { year: prev.year + 1, month: 1 };
+      }
+      return { ...prev, month: prev.month + 1 };
+    });
+  };
+
+  const goToToday = () => {
+    const now = new Date();
+    setCurrentMonth({ year: now.getFullYear(), month: now.getMonth() + 1 });
+  };
+
+  // Generate calendar days for a month
+  const generateCalendarDays = (year, month) => {
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+    const daysInMonth = lastDay.getDate();
+    const startPadding = firstDay.getDay(); // 0 = Sunday
+    const endPadding = (7 - ((startPadding + daysInMonth) % 7)) % 7; // Days to complete last row
+
+    const days = [];
+    // Add padding for days before the 1st
+    for (let i = 0; i < startPadding; i++) {
+      days.push({ day: null, meetings: [], isOtherMonth: true });
+    }
+    // Add actual days
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const dayMeetings = enrichedMeetings.filter(m => m.date === dateStr);
+      days.push({
+        day: d,
+        meetings: dayMeetings,
+        date: dateStr,
+        isToday: dateStr === todayStr
+      });
+    }
+    // Add padding for days after the last day
+    for (let i = 0; i < endPadding; i++) {
+      days.push({ day: null, meetings: [], isOtherMonth: true });
+    }
+    return days;
+  };
+
+  const getMonthName = (year, month) => {
+    const date = new Date(year, month - 1, 1);
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  };
+
+  // Check if a month has any meetings
+  const monthHasMeetings = (year, month) => {
+    const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+    return enrichedMeetings.some(m => m.date?.startsWith(monthKey));
+  };
+
+  // Get months that have meetings for quick navigation
+  const meetingMonths = [...new Set(enrichedMeetings.map(m => m.date?.substring(0, 7)))].filter(Boolean).sort();
+
+  return (
+    <>
+      <div className="upcoming-header">
+        <div className="upcoming-tabs">
+          <button className="upcoming-tab active">
+            Upcoming
+            <span className="tab-count">{enrichedMeetings.length}</span>
+          </button>
+        </div>
+        <div className="upcoming-controls">
+          <div className="view-toggle">
+            <button
+              className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+              onClick={() => onViewModeChange('list')}
+              title="List View"
+            >
+              ☰
+            </button>
+            <button
+              className={`view-toggle-btn ${viewMode === 'calendar' ? 'active' : ''}`}
+              onClick={() => onViewModeChange('calendar')}
+              title="Calendar View"
+            >
+              ▦
+            </button>
+          </div>
+          <button className="btn-add-meeting-sm" onClick={onAddMeeting}>
+            + Add
+          </button>
+        </div>
+      </div>
+
+      {viewMode === 'list' ? (
+        <div className="upcoming-list">
+          {enrichedMeetings.length === 0 ? (
+            <div className="empty-state">
+              <h3>No upcoming meetings</h3>
+              <p>Add meetings to track when they're scheduled.</p>
+            </div>
+          ) : (
+            enrichedMeetings.map(meeting => (
+              <div key={meeting.id} className="upcoming-row">
+                <div className="upcoming-row-left">
+                  <div className="upcoming-date-block">
+                    <span className="date-weekday">{meeting.dateFormatted.weekday}</span>
+                    <span className="date-day">{meeting.dateFormatted.day}</span>
+                    <span className="date-month">{meeting.dateFormatted.month}</span>
+                  </div>
+                  <div className="upcoming-row-info">
+                    <h4>{meeting.name}</h4>
+                    <span className="upcoming-date-full">{meeting.dateFormatted.full}</span>
+                    {meeting.description && <p className="upcoming-description">{meeting.description}</p>}
+                  </div>
+                </div>
+                <div className="upcoming-row-actions">
+                  <span className="upcoming-status">Scheduled</span>
+                  <button
+                    className="btn-delete-meeting"
+                    onClick={() => onDeleteMeeting(meeting.id)}
+                    title="Remove"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      ) : (
+        <div className="upcoming-calendar">
+          <div className="calendar-container">
+            {/* Calendar Navigation */}
+            <div className="calendar-nav">
+              <div className="calendar-nav-left">
+                <button className="calendar-nav-btn" onClick={goToPrevMonth} title="Previous Month">
+                  ‹
+                </button>
+                <h3 className="calendar-month-title">{getMonthName(currentMonth.year, currentMonth.month)}</h3>
+                <button className="calendar-nav-btn" onClick={goToNextMonth} title="Next Month">
+                  ›
+                </button>
+              </div>
+              <div className="calendar-nav-right">
+                <button className="calendar-today-btn" onClick={goToToday}>Today</button>
+                {meetingMonths.length > 0 && (
+                  <div className="calendar-month-dots">
+                    {meetingMonths.slice(0, 5).map(monthKey => {
+                      const [y, m] = monthKey.split('-').map(Number);
+                      const isActive = currentMonth.year === y && currentMonth.month === m;
+                      return (
+                        <button
+                          key={monthKey}
+                          className={`calendar-month-dot ${isActive ? 'active' : ''}`}
+                          onClick={() => setCurrentMonth({ year: y, month: m })}
+                          title={getMonthName(y, m)}
+                        >
+                          {new Date(y, m - 1).toLocaleDateString('en-US', { month: 'short' })}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Calendar Grid */}
+            <div className="calendar-table">
+              <div className="calendar-weekdays">
+                <span>SUN</span>
+                <span>MON</span>
+                <span>TUE</span>
+                <span>WED</span>
+                <span>THU</span>
+                <span>FRI</span>
+                <span>SAT</span>
+              </div>
+              <div className="calendar-grid">
+                {generateCalendarDays(currentMonth.year, currentMonth.month).map((dayInfo, idx) => (
+                  <div
+                    key={idx}
+                    className={`calendar-day ${dayInfo.isOtherMonth ? 'empty' : ''} ${dayInfo.meetings.length > 0 ? 'has-meeting' : ''} ${dayInfo.isToday ? 'is-today' : ''}`}
+                  >
+                    {dayInfo.day && (
+                      <>
+                        <span className="calendar-day-num">{dayInfo.day}</span>
+                        <div className="calendar-day-meetings">
+                          {dayInfo.meetings.map(m => (
+                            <div key={m.id} className="calendar-meeting-chip" title={`${m.name}${m.description ? ` - ${m.description}` : ''}`}>
+                              <span className="chip-dot"></span>
+                              <span className="chip-text">{m.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Meeting indicator */}
+            {monthHasMeetings(currentMonth.year, currentMonth.month) && (
+              <div className="calendar-legend">
+                <span className="legend-item">
+                  <span className="legend-dot"></span>
+                  Scheduled Meeting
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function MeetingListView({ department, ideas, meetings, onSelectMeeting, onAddMeeting }) {
   // Format date for display
   const formatDate = (dateStr) => {
     if (!dateStr) return { month: '---', day: '--' };
@@ -1327,9 +1796,14 @@ function MeetingListView({ department, ideas, meetings, onSelectMeeting }) {
       return meeting.ideasCount > 0;
     });
 
+    // Format date for display in name
+    const dateForName = meeting.processedAt
+      ? new Date(meeting.processedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : `Video ${meeting.videoId}`;
+
     return {
       ...meeting,
-      name: `${department?.name || 'Meeting'} - Video ${meeting.videoId}`,
+      name: `${department?.name || 'Meeting'} - ${dateForName}`,
       date: formatDate(meeting.processedAt),
       ideas: meeting.ideasCount > 0 ? ideas : []
     };
@@ -1339,8 +1813,11 @@ function MeetingListView({ department, ideas, meetings, onSelectMeeting }) {
     <>
       <div className="meetings-tabs">
         <button className="meetings-tab active">
-          Processed Meetings
+          Meetings
           <span className="tab-count">{enrichedMeetings.length}</span>
+        </button>
+        <button className="btn-add-meeting-sm" onClick={onAddMeeting}>
+          + Add Meeting
         </button>
       </div>
 
@@ -1374,8 +1851,8 @@ function MeetingListView({ department, ideas, meetings, onSelectMeeting }) {
                       )}
                       <span className={`stat-item status-${meeting.status}`}>
                         {meeting.status === 'processed' ? 'Ready' :
-                         meeting.status === 'analyzed' ? 'Analyzed' :
-                         meeting.status === 'transcribed' ? 'Transcribed' : 'Downloading'}
+                          meeting.status === 'analyzed' ? 'Analyzed' :
+                            meeting.status === 'transcribed' ? 'Transcribed' : 'Downloading'}
                       </span>
                     </div>
                   </div>
@@ -1483,17 +1960,17 @@ function MeetingDetailView({ meeting, onBack, onSelectIdea, onGenerateArticle })
       <div className="meeting-full-content">
         <div className="meeting-full-header">
           <div className="meeting-date-large">
-            <span className="date-month-lg">{meeting.date.split(' ')[0].toUpperCase()}</span>
-            <span className="date-day-lg">{meeting.date.split(' ')[1].replace(',', '')}</span>
+            <span className="date-month-lg">{meeting.date ? meeting.date.split(' ')[0]?.toUpperCase() : 'N/A'}</span>
+            <span className="date-day-lg">{meeting.date ? meeting.date.split(' ')[1]?.replace(',', '') : ''}</span>
           </div>
           <div className="meeting-title-block">
-            <h1>{meeting.name}</h1>
-            <p>{meeting.ideas.length} article ideas available</p>
+            <h1>{meeting.name || `Video ${meeting.videoId}`}</h1>
+            <p>{(meeting.ideas?.length || 0)} article ideas available</p>
           </div>
         </div>
 
         <div className="ideas-list">
-          {meeting.ideas.length === 0 ? (
+          {(!meeting.ideas || meeting.ideas.length === 0) ? (
             <div className="empty-ideas-full">
               <h3>No Article Ideas</h3>
               <p>Run the agent to generate article ideas from this meeting.</p>

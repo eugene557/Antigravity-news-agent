@@ -343,6 +343,108 @@ app.get('/api/agents/town-meeting/meetings', (req, res) => {
 });
 
 /**
+ * GET /api/agents/town-meeting/upcoming
+ * Returns list of upcoming meetings from meetings.json
+ */
+app.get('/api/agents/town-meeting/upcoming', (req, res) => {
+  try {
+    const meetingsFile = path.join(__dirname, '..', 'data', 'meetings.json');
+
+    if (!fs.existsSync(meetingsFile)) {
+      return res.json({ upcoming: [] });
+    }
+
+    const registry = JSON.parse(fs.readFileSync(meetingsFile, 'utf-8'));
+    // Filter to only future meetings
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const upcoming = registry.filter(m => new Date(m.date) >= today);
+    res.json({ upcoming });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * DELETE /api/agents/town-meeting/upcoming/:id
+ * Delete an upcoming meeting
+ */
+app.delete('/api/agents/town-meeting/upcoming/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const meetingsFile = path.join(__dirname, '..', 'data', 'meetings.json');
+
+    if (!fs.existsSync(meetingsFile)) {
+      return res.status(404).json({ error: 'No meetings file found' });
+    }
+
+    let registry = JSON.parse(fs.readFileSync(meetingsFile, 'utf-8'));
+    const index = registry.findIndex(m => m.id === id);
+
+    if (index === -1) {
+      return res.status(404).json({ error: 'Meeting not found' });
+    }
+
+    registry.splice(index, 1);
+    fs.writeFileSync(meetingsFile, JSON.stringify(registry, null, 2));
+
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * POST /api/agents/town-meeting/meetings
+ * Manual creation of upcoming meetings
+ */
+app.post('/api/agents/town-meeting/meetings', (req, res) => {
+  try {
+    const { date, type, departmentId, description } = req.body;
+
+    if (!date || !type) {
+      return res.status(400).json({ error: 'Date and Type are required' });
+    }
+
+    const meetingsFile = path.join(__dirname, '..', 'data', 'meetings.json');
+    let registry = [];
+
+    if (fs.existsSync(meetingsFile)) {
+      registry = JSON.parse(fs.readFileSync(meetingsFile, 'utf-8'));
+    }
+
+    const prefix = departmentId ? departmentId :
+                   type.toLowerCase().includes('council') ? 'tc' :
+                   type.toLowerCase().includes('planning') ? 'pb' : 'tm';
+
+    const id = `${prefix}-${date}`;
+    if (registry.find(m => m.id === id)) {
+      return res.status(409).json({ error: 'Meeting with this ID already exists' });
+    }
+
+    const newMeeting = {
+      id,
+      date,
+      type,
+      status: 'upcoming',
+      departmentId,
+      description: description || null,
+      createdAt: new Date().toISOString()
+    };
+
+    registry.push(newMeeting);
+    registry.sort((a, b) => new Date(a.date) - new Date(b.date));
+    fs.writeFileSync(meetingsFile, JSON.stringify(registry, null, 2));
+
+    res.json(newMeeting);
+  } catch (e) {
+    console.error('Error creating meeting:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
  * GET /api/agents/town-meeting/ideas
  */
 app.get('/api/agents/town-meeting/ideas', (req, res) => {
@@ -471,11 +573,15 @@ app.post('/api/agents/town-meeting/run', async (req, res) => {
   (async () => {
     const agentDir = path.join(__dirname, '..', 'agents', 'town-meeting');
     const departmentId = req.body.departmentId || 'town-council';
+    const scrapeMode = req.body.scrapeMode || 'latest'; // 'latest' or 'upcoming'
 
     try {
-      // Run scraper (gets latest meeting)
-      console.log(`Running town-meeting scraper for ${departmentId}...`);
-      await runScript(agentDir, 'scrape.js', [], { DEPARTMENT_ID: departmentId });
+      // Run scraper (gets latest meeting or processes upcoming)
+      console.log(`Running town-meeting scraper for ${departmentId} (mode: ${scrapeMode})...`);
+      await runScript(agentDir, 'scrape.js', [], {
+        DEPARTMENT_ID: departmentId,
+        SCRAPE_MODE: scrapeMode
+      });
 
       // Mismatch fix: Orchestrator saves to ../../data/swagit
       const dataDir = path.join(__dirname, '..', 'data', 'swagit');

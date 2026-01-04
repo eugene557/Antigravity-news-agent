@@ -276,10 +276,16 @@ app.get('/api/agents/town-meeting/meetings', (req, res) => {
     const files = fs.readdirSync(dataDir);
 
     // Find all unique video IDs that have been processed
+    // Also detect from transcript files (for bootstrap script which doesn't download videos)
     const videoIds = new Set();
     files.forEach(f => {
-      const match = f.match(/^(\d+)\.(mp4|vtt|mp3)$/);
-      if (match) videoIds.add(match[1]);
+      // Match video/audio files
+      const mediaMatch = f.match(/^(\d+)\.(mp4|vtt|mp3)$/);
+      if (mediaMatch) videoIds.add(mediaMatch[1]);
+
+      // Also match transcript files (e.g., "362440_transcript.json")
+      const transcriptMatch = f.match(/^(\d+)_transcript\.json$/);
+      if (transcriptMatch) videoIds.add(transcriptMatch[1]);
     });
 
     const meetings = [];
@@ -299,7 +305,7 @@ app.get('/api/agents/town-meeting/meetings', (req, res) => {
       try {
         const stat = fs.statSync(path.join(dataDir, `${videoId}.mp4`));
         processedDate = stat.mtime.toISOString();
-      } catch (e) {}
+      } catch (e) { }
 
       // Get ideas count if current_ideas.json matches this video
       let ideasCount = 0;
@@ -310,13 +316,29 @@ app.get('/api/agents/town-meeting/meetings', (req, res) => {
             ideasCount = ideasData.ideas?.length || 0;
           }
         }
-      } catch (e) {}
+      } catch (e) { }
 
-      // Determine status
+      // Lookup metadata in meetings.json FIRST (needed for status check)
+      const meetingsFile = path.join(__dirname, '..', 'data', 'meetings.json');
+      let registry = [];
+      try {
+        if (fs.existsSync(meetingsFile)) {
+          registry = JSON.parse(fs.readFileSync(meetingsFile, 'utf-8'));
+        }
+      } catch (e) { }
+
+      const registryEntry = registry.find(m => m.videoId === videoId || m.id === videoId);
+
+      // Determine status - support both video+transcript and transcript-only workflows
       let status = 'downloading';
-      if (hasVideo && hasTranscript) status = 'transcribed';
-      if (hasVideo && hasTranscript && hasAnalysis) status = 'analyzed';
-      if (hasVideo && hasTranscript && hasAnalysis && ideasCount > 0) status = 'processed';
+      if (hasTranscript) status = 'transcribed';
+      if (hasTranscript && hasAnalysis) status = 'analyzed';
+      if (hasTranscript && hasAnalysis && ideasCount > 0) status = 'processed';
+      // Also check registry for status override
+      if (registryEntry?.status === 'processed' || registryEntry?.ideasCount > 0) {
+        status = 'processed';
+        if (!ideasCount && registryEntry?.ideasCount) ideasCount = registryEntry.ideasCount;
+      }
 
       meetings.push({
         id: videoId,
@@ -329,6 +351,10 @@ app.get('/api/agents/town-meeting/meetings', (req, res) => {
         ideasCount,
         articlesGenerated: articleFiles.length,
         processedAt: processedDate,
+        date: registryEntry?.date || null,
+        description: registryEntry?.description || null,
+        departmentId: registryEntry?.departmentId || null,
+        type: registryEntry?.type || null,
         status
       });
     }
@@ -415,8 +441,8 @@ app.post('/api/agents/town-meeting/meetings', (req, res) => {
     }
 
     const prefix = departmentId ? departmentId :
-                   type.toLowerCase().includes('council') ? 'tc' :
-                   type.toLowerCase().includes('planning') ? 'pb' : 'tm';
+      type.toLowerCase().includes('council') ? 'tc' :
+        type.toLowerCase().includes('planning') ? 'pb' : 'tm';
 
     const id = `${prefix}-${date}`;
     if (registry.find(m => m.id === id)) {

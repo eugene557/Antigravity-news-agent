@@ -58,7 +58,7 @@ function downloadFile(url, destPath) {
             if (response.statusCode !== 200) {
                 // Cleanup the empty file created by createWriteStream
                 file.close();
-                fs.unlink(destPath, () => {}); 
+                fs.unlink(destPath, () => { });
                 reject(new Error(`Failed to download file. Status: ${response.statusCode}`));
                 return;
             }
@@ -172,7 +172,9 @@ async function main() {
             console.log('Audio file already exists. Skipping extraction.');
         }
 
-        // 4. Transcribe
+        // 4. Transcribe - SKIPPED
+        // We defer transcription to agents/town-meeting/transcribe.js which has chunking and retry logic.
+        /*
         const vttPath = path.join(OUTPUT_DIR, `${videoId}.vtt`);
         if (!fs.existsSync(vttPath)) {
             try {
@@ -191,10 +193,13 @@ async function main() {
         } else {
             console.log('Transcript already exists.');
         }
+        */
 
     } catch (error) {
         console.error('Error:', error.message);
+        process.exit(1);
     }
+    process.exit(0);
 }
 
 main();

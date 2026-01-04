@@ -1,0 +1,72 @@
+{
+  "metadata": {
+    "videoId": "363139",
+    "generatedAt": "2026-01-03T22:39:58.424Z"
+  },
+  "ideas": [
+    {
+      "id": "1",
+      "event": "The Golf Channel Games special event permit application was discussed, featuring a national TV spot with top golfers.",
+      "title": "Jupiter to Shine on National Stage with Golf Channel Games",
+      "summary": "Jupiter, Florida will soon be in the national spotlight as it hosts the Golf Channel Games, featuring top golfers like Rory McIlroy and Scottie Scheffler. This event promises to showcase the town on a global scale.",
+      "angles": [
+        {
+          "name": "Community Impact",
+          "description": "Explore how the event will affect local businesses, tourism, and community pride.",
+          "prompt_hint": "Focus on the benefits and challenges for Jupiter's local economy and community."
+        },
+        {
+          "name": "Security and Logistics",
+          "description": "Detail the extensive security and logistical plans necessary for hosting such a high-profile event.",
+          "prompt_hint": "Highlight the planning and security measures being implemented for the event."
+        },
+        {
+          "name": "Golfing Culture in Jupiter",
+          "description": "Examine the role of golf in Jupiter's identity and how events like these bolster its reputation.",
+          "prompt_hint": "Discuss Jupiter's golfing culture and how this event enhances it."
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "event": "Approval of the Getz Subdivision annexation into the Town of Jupiter.",
+      "title": "Jupiter Expands: Getz Subdivision Annexation Approved",
+      "summary": "The Getz Subdivision has officially been annexed into Jupiter, aligning it with town services and zoning. This marks a step towards greater municipal cohesion and potential development.",
+      "angles": [
+        {
+          "name": "Municipal Growth",
+          "description": "Analyze the implications of expanding Jupiter's boundaries with the Getz Subdivision annexation.",
+          "prompt_hint": "Discuss the benefits and potential challenges of expanding Jupiter's municipal boundaries."
+        },
+        {
+          "name": "Zoning and Development",
+          "description": "Explore how the annexation affects zoning laws and future development possibilities for the area.",
+          "prompt_hint": "Focus on what changes in zoning mean for future development."
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "event": "The Beacon Park proposal for a zoning change from industrial to residential was deliberated.",
+      "title": "Beacon Park: A New Vision for Jupiter's Growth",
+      "summary": "Beacon Park's proposal to shift from industrial to residential zoning could significantly reduce traffic and align with the town's residential character. This move represents a pivotal decision for Jupiter's urban planning.",
+      "angles": [
+        {
+          "name": "Traffic Reduction",
+          "description": "Examine how the proposed zoning change could relieve traffic congestion issues on Indiantown Road.",
+          "prompt_hint": "Highlight the potential traffic improvements from the zoning change."
+        },
+        {
+          "name": "Economic Trade-offs",
+          "description": "Discuss the potential economic implications of losing industrial zoning in favor of residential development.",
+          "prompt_hint": "Focus on the economic impacts of transitioning from industrial to residential zoning."
+        },
+        {
+          "name": "Community Feedback",
+          "description": "Reflect on community reactions and concerns regarding the proposed changes at Beacon Park.",
+          "prompt_hint": "Explore how local residents feel about the proposed zoning changes."
+        }
+      ]
+    }
+  ]
+}

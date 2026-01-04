@@ -145,6 +145,84 @@ function updateMeetingStatus(meetingId, status, videoId = null) {
 }
 
 /**
+ * Register a newly processed meeting in meetings.json
+ */
+function registerProcessedMeeting(videoId, departmentId) {
+    try {
+        // Load existing meetings
+        let meetings = [];
+        if (fs.existsSync(MEETINGS_PATH)) {
+            meetings = JSON.parse(fs.readFileSync(MEETINGS_PATH, 'utf-8'));
+        }
+
+        // Check if already registered
+        if (meetings.some(m => m.videoId === videoId)) {
+            console.log(`📋 Meeting ${videoId} already registered.`);
+            return;
+        }
+
+        // Load department info
+        let departmentName = departmentId;
+        try {
+            if (fs.existsSync(SETTINGS_PATH)) {
+                const settings = JSON.parse(fs.readFileSync(SETTINGS_PATH, 'utf-8'));
+                const dept = settings.departments.find(d => d.id === departmentId);
+                if (dept) departmentName = dept.name;
+            }
+        } catch (e) { /* ignore */ }
+
+        // Load transcript for metadata
+        let durationMinutes = 0;
+        let meetingDate = new Date().toISOString().split('T')[0];
+        const transcriptPath = path.join(DATA_DIR, `${videoId}_transcript.json`);
+        if (fs.existsSync(transcriptPath)) {
+            try {
+                const transcript = JSON.parse(fs.readFileSync(transcriptPath, 'utf-8'));
+                durationMinutes = transcript.durationMinutes || 0;
+                // Try to extract date from transcript if available
+                if (transcript.transcribedAt) {
+                    meetingDate = transcript.transcribedAt.split('T')[0];
+                }
+            } catch (e) { /* ignore */ }
+        }
+
+        // Load analysis for description
+        let description = `${departmentName} Meeting`;
+        const analysisPath = path.join(DATA_DIR, `${videoId}_analysis.json`);
+        if (fs.existsSync(analysisPath)) {
+            try {
+                const analysis = JSON.parse(fs.readFileSync(analysisPath, 'utf-8'));
+                if (analysis.analysis?.meeting_summary) {
+                    // Truncate to first 100 chars for description
+                    description = analysis.analysis.meeting_summary.slice(0, 150);
+                    if (analysis.analysis.meeting_summary.length > 150) description += '...';
+                }
+            } catch (e) { /* ignore */ }
+        }
+
+        // Create meeting entry
+        const newMeeting = {
+            id: videoId,
+            videoId: videoId,
+            departmentId: departmentId,
+            type: `${departmentName} Meeting`,
+            date: meetingDate,
+            status: 'processed',
+            processedAt: new Date().toISOString(),
+            description: description,
+            durationMinutes: durationMinutes
+        };
+
+        meetings.push(newMeeting);
+        fs.writeFileSync(MEETINGS_PATH, JSON.stringify(meetings, null, 2));
+        console.log(`✅ Registered meeting ${videoId} in meetings.json`);
+
+    } catch (e) {
+        console.warn(`⚠️  Could not register meeting: ${e.message}`);
+    }
+}
+
+/**
  * Process a single video through the pipeline
  */
 async function processVideo(videoId) {
@@ -221,6 +299,9 @@ async function main() {
         }
 
         await processVideo(videoId);
+
+        // 4. Register the meeting in meetings.json for the dashboard
+        registerProcessedMeeting(videoId, departmentId);
 
         console.log('\n✅ Orchestration Complete. Analysis ready for generation.');
 

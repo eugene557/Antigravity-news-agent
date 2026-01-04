@@ -1,9 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * Town Meeting Transcription Agent
+ * Town Meeting Transcription Agent (Self-Healing Edition)
  *
- * Extracts audio from video files and transcribes using OpenAI Whisper API.
+ * Features:
+ * - Parallel transcription (4x faster)
+ * - Adaptive throttling (adjusts concurrency based on success/failures)
+ * - Scripted error recovery (rate limits, network issues, memory)
+ * - AI diagnosis for unknown failures
+ * - Checkpointing for resume-from-failure
  *
  * Usage: node transcribe.js <video_path> [output_path]
  */
@@ -14,6 +19,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import pLimit from 'p-limit';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '../../.env') });
@@ -26,14 +32,227 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// Whisper API has a 25MB file limit, so we chunk audio
-const MAX_CHUNK_SIZE_MB = 24;
-const CHUNK_DURATION_MINUTES = 10; // ~10 min chunks stay under 25MB for 16kHz mono
+// Configuration
+const CHUNK_DURATION_MINUTES = 10;
+const INITIAL_CONCURRENCY = 4;
+const MAX_RETRIES = 3;
 
+// ============================================
+// ADAPTIVE THROTTLER (Script-based rate control)
+// ============================================
+class AdaptiveThrottler {
+  constructor(initialConcurrency = INITIAL_CONCURRENCY) {
+    this.concurrency = initialConcurrency;
+    this.successStreak = 0;
+    this.limit = pLimit(initialConcurrency);
+    this.stats = { success: 0, failure: 0, retries: 0 };
+  }
+
+  onSuccess() {
+    this.stats.success++;
+    this.successStreak++;
+    // Speed back up after 5 consecutive successes
+    if (this.successStreak > 5 && this.concurrency < INITIAL_CONCURRENCY) {
+      this.concurrency++;
+      this.limit = pLimit(this.concurrency);
+      console.log(`📈 Increasing concurrency to ${this.concurrency}`);
+      this.successStreak = 0;
+    }
+  }
+
+  onRateLimit() {
+    this.stats.failure++;
+    this.concurrency = Math.max(1, Math.floor(this.concurrency / 2));
+    this.limit = pLimit(this.concurrency);
+    this.successStreak = 0;
+    console.log(`📉 Rate limited - reducing concurrency to ${this.concurrency}`);
+  }
+
+  onError() {
+    this.stats.failure++;
+    this.stats.retries++;
+    this.successStreak = 0;
+  }
+
+  getSummary() {
+    return `✅ ${this.stats.success} success, ❌ ${this.stats.failure} failures, 🔄 ${this.stats.retries} retries`;
+  }
+}
+
+// ============================================
+// ERROR CATEGORIZATION (Script-based)
+// ============================================
+function categorizeError(error) {
+  const msg = error.message?.toLowerCase() || '';
+
+  if (error.status === 429 || msg.includes('rate limit')) {
+    return { type: 'rate_limit', action: 'wait_and_reduce', waitMs: 60000 };
+  }
+  if (msg.includes('connection') || msg.includes('network') || msg.includes('econnreset')) {
+    return { type: 'network', action: 'retry_fresh', waitMs: 2000 };
+  }
+  if (msg.includes('timeout') || msg.includes('timed out')) {
+    return { type: 'timeout', action: 'retry_fresh', waitMs: 5000 };
+  }
+  if (error.status === 401 || msg.includes('api key') || msg.includes('unauthorized')) {
+    return { type: 'auth', action: 'fail_fast', waitMs: 0 };
+  }
+  if (error.status === 413 || msg.includes('too large')) {
+    return { type: 'file_too_large', action: 'fail_fast', waitMs: 0 };
+  }
+  if (error.status === 503 || msg.includes('overloaded') || msg.includes('unavailable')) {
+    return { type: 'service_down', action: 'wait_and_retry', waitMs: 30000 };
+  }
+
+  return { type: 'unknown', action: 'ai_diagnose', waitMs: 1000 };
+}
+
+// ============================================
+// AI DIAGNOSIS (For unknown failures)
+// ============================================
+async function aiDiagnose(error, context) {
+  console.log('🤖 Invoking AI diagnosis for unknown error...');
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{
+        role: 'system',
+        content: 'You are a debugging expert. Analyze the error and provide a structured diagnosis. Be concise.'
+      }, {
+        role: 'user',
+        content: `Error during Whisper API transcription:
+
+Error: ${error.message}
+Status: ${error.status || 'N/A'}
+Chunk: ${context.chunkIndex + 1}/${context.totalChunks}
+File size: ${context.fileSize} bytes
+
+Respond in JSON:
+{
+  "diagnosis": "brief explanation of what went wrong",
+  "recoverable": true/false,
+  "suggestion": "what to try next"
+}`
+      }],
+      response_format: { type: 'json_object' },
+      max_tokens: 200
+    });
+
+    const diagnosis = JSON.parse(response.choices[0].message.content);
+    console.log(`🔍 AI Diagnosis: ${diagnosis.diagnosis}`);
+    console.log(`💡 Suggestion: ${diagnosis.suggestion}`);
+    return diagnosis;
+  } catch (aiError) {
+    console.warn('⚠️  AI diagnosis failed, using default recovery');
+    return { diagnosis: 'AI unavailable', recoverable: true, suggestion: 'Retry with backoff' };
+  }
+}
+
+// ============================================
+// SELF-HEALING TRANSCRIPTION
+// ============================================
+async function transcribeChunkWithRecovery(chunkPath, chunkIndex, totalChunks, throttler) {
+  const fileSize = fs.statSync(chunkPath).size;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const audioFile = fs.createReadStream(chunkPath);
+      const response = await openai.audio.transcriptions.create({
+        file: audioFile,
+        model: 'whisper-1',
+        response_format: 'verbose_json',
+        timestamp_granularities: ['segment']
+      });
+
+      throttler.onSuccess();
+      return response;
+
+    } catch (error) {
+      const category = categorizeError(error);
+      console.warn(`⚠️  Chunk ${chunkIndex + 1} attempt ${attempt}/${MAX_RETRIES}: ${category.type}`);
+
+      // Handle based on error type
+      switch (category.action) {
+        case 'fail_fast':
+          throw new Error(`Unrecoverable error: ${error.message}`);
+
+        case 'wait_and_reduce':
+          throttler.onRateLimit();
+          console.log(`⏳ Waiting ${category.waitMs / 1000}s for rate limit...`);
+          await new Promise(r => setTimeout(r, category.waitMs));
+          break;
+
+        case 'retry_fresh':
+        case 'wait_and_retry':
+          throttler.onError();
+          await new Promise(r => setTimeout(r, category.waitMs));
+          break;
+
+        case 'ai_diagnose':
+          throttler.onError();
+          if (attempt === MAX_RETRIES) {
+            const diagnosis = await aiDiagnose(error, { chunkIndex, totalChunks, fileSize });
+            if (!diagnosis.recoverable) {
+              throw new Error(`AI diagnosed unrecoverable: ${diagnosis.diagnosis}`);
+            }
+          }
+          await new Promise(r => setTimeout(r, category.waitMs * attempt));
+          break;
+      }
+
+      if (attempt === MAX_RETRIES) {
+        throw error;
+      }
+    }
+  }
+}
+
+// ============================================
+// PARALLEL TRANSCRIPTION
+// ============================================
+async function transcribeChunksParallel(chunks, tempDir, throttler) {
+  console.log(`\n🚀 Starting parallel transcription (concurrency: ${throttler.concurrency})...\n`);
+
+  const transcriptions = new Array(chunks.length);
+  let completed = 0;
+
+  const tasks = chunks.map((chunk, i) => {
+    return throttler.limit(async () => {
+      const chunkTranscriptPath = path.join(tempDir, `chunk_${i}_transcript.json`);
+
+      // Check for checkpoint
+      if (fs.existsSync(chunkTranscriptPath)) {
+        console.log(`⏩ Chunk ${i + 1}/${chunks.length} (cached)`);
+        transcriptions[i] = JSON.parse(fs.readFileSync(chunkTranscriptPath, 'utf-8'));
+        completed++;
+        return;
+      }
+
+      console.log(`🎙️  Chunk ${i + 1}/${chunks.length} starting...`);
+      const result = await transcribeChunkWithRecovery(chunk.path, i, chunks.length, throttler);
+
+      // Save checkpoint
+      fs.writeFileSync(chunkTranscriptPath, JSON.stringify(result, null, 2));
+      transcriptions[i] = result;
+      completed++;
+
+      const cost = (completed * CHUNK_DURATION_MINUTES * 0.006).toFixed(2);
+      console.log(`✅ Chunk ${i + 1}/${chunks.length} done (${completed}/${chunks.length}, ~$${cost})`);
+    });
+  });
+
+  await Promise.all(tasks);
+
+  console.log(`\n📊 Transcription stats: ${throttler.getSummary()}`);
+  return transcriptions;
+}
+
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
 async function extractAudio(videoPath, audioPath) {
   console.log('📼 Extracting audio from video...');
-
-  // Extract as 16kHz mono WAV (optimal for Whisper)
   const cmd = `ffmpeg -i "${videoPath}" -vn -acodec pcm_s16le -ar 16000 -ac 1 -y "${audioPath}"`;
 
   try {
@@ -61,14 +280,10 @@ async function splitAudioIntoChunks(audioPath, outputDir) {
   console.log(`📦 Splitting into ${numChunks} chunks...`);
 
   const chunks = [];
-
   for (let i = 0; i < numChunks; i++) {
     const startTime = i * chunkDurationSec;
     const chunkPath = path.join(outputDir, `chunk_${i.toString().padStart(3, '0')}.mp3`);
-
-    // Convert to MP3 for smaller file size
     const cmd = `ffmpeg -i "${audioPath}" -ss ${startTime} -t ${chunkDurationSec} -acodec libmp3lame -ar 16000 -ac 1 -b:a 64k -y "${chunkPath}"`;
-
     await execAsync(cmd);
     chunks.push({ path: chunkPath, startTime });
   }
@@ -77,26 +292,10 @@ async function splitAudioIntoChunks(audioPath, outputDir) {
   return chunks;
 }
 
-async function transcribeChunk(chunkPath, chunkIndex, totalChunks) {
-  console.log(`🎙️  Transcribing chunk ${chunkIndex + 1}/${totalChunks}...`);
-
-  const audioFile = fs.createReadStream(chunkPath);
-
-  const response = await openai.audio.transcriptions.create({
-    file: audioFile,
-    model: 'whisper-1',
-    response_format: 'verbose_json',
-    timestamp_granularities: ['segment']
-  });
-
-  return response;
-}
-
 function formatTimestamp(seconds) {
   const hrs = Math.floor(seconds / 3600);
   const mins = Math.floor((seconds % 3600) / 60);
   const secs = Math.floor(seconds % 60);
-
   if (hrs > 0) {
     return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
@@ -109,7 +308,6 @@ function formatTranscript(transcriptions, chunks) {
 
   transcriptions.forEach((transcription, i) => {
     const offsetSeconds = chunks[i].startTime;
-
     if (transcription.segments) {
       transcription.segments.forEach(seg => {
         const adjustedStart = seg.start + offsetSeconds;
@@ -120,7 +318,6 @@ function formatTranscript(transcriptions, chunks) {
         });
       });
     }
-
     fullText += transcription.text + ' ';
   });
 
@@ -131,29 +328,19 @@ function parseVtt(vttContent) {
   const lines = vttContent.split('\n');
   const segments = [];
   let fullText = '';
-
-  // Simple VTT parser
-  // WEB VTT often has:
-  // 00:00:01.000 --> 00:00:04.000
-  // text
-
   let currentStart = null;
   let currentText = '';
-
-  // Regex for timestamp line (00:00:00.000 or 00:00.000)
   const timeRegex = /((?:\d{2}:)?\d{2}:\d{2}\.\d{3})\s+-->\s+((?:\d{2}:)?\d{2}:\d{2}\.\d{3})/;
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-    if (line.includes('WEBVTT')) continue;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.includes('WEBVTT')) continue;
 
-    const timeMatch = line.match(timeRegex);
+    const timeMatch = trimmed.match(timeRegex);
     if (timeMatch) {
-      // If we had a previous segment, push it
       if (currentStart !== null && currentText) {
         segments.push({
-          timestamp: currentStart, // Keep string format for display
+          timestamp: currentStart,
           startSeconds: parseTimestampToSeconds(currentStart),
           text: currentText.trim()
         });
@@ -161,12 +348,11 @@ function parseVtt(vttContent) {
         currentText = '';
       }
       currentStart = timeMatch[1];
-    } else if (currentStart !== null && !line.match(/^\d+$/)) { // Skip simple index numbers
-      currentText += line + ' ';
+    } else if (currentStart !== null && !trimmed.match(/^\d+$/)) {
+      currentText += trimmed + ' ';
     }
   }
 
-  // Push last segment
   if (currentStart !== null && currentText) {
     segments.push({
       timestamp: currentStart,
@@ -188,6 +374,9 @@ function parseTimestampToSeconds(timestamp) {
   return seconds;
 }
 
+// ============================================
+// MAIN
+// ============================================
 async function main() {
   const videoPath = process.argv[2];
   const outputPath = process.argv[3];
@@ -208,33 +397,23 @@ async function main() {
   const defaultOutputPath = path.join(workDir, `${videoName}_transcript.json`);
   const finalOutputPath = outputPath || defaultOutputPath;
 
-  // Check for existing VTT file
+  // Check for existing VTT file (fast path)
   const potentialVttPath = path.join(workDir, `${videoName}.vtt`);
   if (fs.existsSync(potentialVttPath)) {
-    const vttStats = fs.statSync(potentialVttPath);
     const vttContent = fs.readFileSync(potentialVttPath, 'utf-8');
-
-    if (vttStats.size > 0 && vttContent.trim().length > 0) {
+    if (vttContent.trim().length > 0) {
       console.log(`✅ Found existing VTT transcript: ${potentialVttPath}`);
       console.log('⏩ Skipping Whisper API transcription...');
 
       const { fullText, segments } = parseVtt(vttContent);
-
       const output = {
         videoId: videoName,
         sourceFile: videoPath,
         transcribedAt: new Date().toISOString(),
-        durationMinutes: 0, // Placeholder, calculated properly only if we had audio path. 
+        durationMinutes: 0,
         fullText,
         segments
       };
-
-      // Try to get duration from video file if possible
-      try {
-        // We might not have extracted audio yet if we skipped it, so let's try reading video metadata directly if we want
-        // Or just leave it as is. Analyze.js mostly needs text.
-        // Let's at least try a quick check if audio exists, else we can skip
-      } catch (e) { }
 
       fs.writeFileSync(finalOutputPath, JSON.stringify(output, null, 2));
       console.log(`✅ Transcript saved to: ${finalOutputPath}`);
@@ -243,10 +422,7 @@ async function main() {
       const textContent = segments.map(s => `[${s.timestamp}] ${s.text}`).join('\n\n');
       fs.writeFileSync(textOutputPath, textContent);
       console.log(`✅ Plain text saved to: ${textOutputPath}`);
-
       return;
-    } else {
-      console.warn(`⚠️  Found existing VTT at ${potentialVttPath} but it appears empty or invalid. Proceeding with transcription.`);
     }
   }
 
@@ -254,6 +430,8 @@ async function main() {
   if (!fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir, { recursive: true });
   }
+
+  const throttler = new AdaptiveThrottler(INITIAL_CONCURRENCY);
 
   try {
     // Step 1: Extract audio
@@ -263,18 +441,8 @@ async function main() {
     // Step 2: Split into chunks
     const chunks = await splitAudioIntoChunks(audioPath, tempDir);
 
-    // Step 3: Transcribe each chunk
-    console.log('\n🚀 Starting transcription (this may take a few minutes)...\n');
-    const transcriptions = [];
-
-    for (let i = 0; i < chunks.length; i++) {
-      const result = await transcribeChunk(chunks[i].path, i, chunks.length);
-      transcriptions.push(result);
-
-      // Show progress
-      const cost = ((i + 1) * CHUNK_DURATION_MINUTES * 0.006).toFixed(2);
-      console.log(`   Cost so far: ~$${cost}`);
-    }
+    // Step 3: Parallel transcription with self-healing
+    const transcriptions = await transcribeChunksParallel(chunks, tempDir, throttler);
 
     // Step 4: Combine and format
     console.log('\n📝 Formatting transcript...');
@@ -293,7 +461,6 @@ async function main() {
     fs.writeFileSync(finalOutputPath, JSON.stringify(output, null, 2));
     console.log(`\n✅ Transcript saved to: ${finalOutputPath}`);
 
-    // Also save plain text version
     const textOutputPath = finalOutputPath.replace('.json', '.txt');
     const textContent = segments.map(s => `[${s.timestamp}] ${s.text}`).join('\n\n');
     fs.writeFileSync(textOutputPath, textContent);
@@ -309,13 +476,11 @@ async function main() {
     console.log(`   Duration: ${output.durationMinutes} minutes`);
     console.log(`   Segments: ${segments.length}`);
     console.log(`   Estimated cost: ~$${totalCost}`);
+    console.log(`   Performance: ${throttler.getSummary()}`);
 
   } catch (error) {
     console.error('❌ Error:', error.message);
-    // Cleanup on error
-    if (fs.existsSync(tempDir)) {
-      fs.rmSync(tempDir, { recursive: true });
-    }
+    console.log('💾 Temp files preserved for resume. Run again to continue from checkpoints.');
     process.exit(1);
   }
 }

@@ -627,7 +627,7 @@ function App() {
         <div className="loading-content">
           <div className="loading-spinner"></div>
           <h1>NEWS<span className="highlight">SCRAPER</span></h1>
-          <p>Loading your dashboard...</p>
+          <p>Loading...</p>
         </div>
       </div>
     );
@@ -1797,14 +1797,16 @@ function MeetingListView({ department, ideas, meetings, onSelectMeeting, onAddMe
     });
 
     // Format date for display in name
-    const dateForName = meeting.processedAt
-      ? new Date(meeting.processedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    const dateToUse = meeting.date || meeting.processedAt;
+    const dateForName = dateToUse
+      ? new Date(dateToUse + (meeting.date ? 'T12:00:00' : '')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
       : `Video ${meeting.videoId}`;
 
     return {
       ...meeting,
-      name: `${department?.name || 'Meeting'} - ${dateForName}`,
-      date: formatDate(meeting.processedAt),
+      name: `${meeting.type || department?.name || 'Meeting'} - ${dateForName}`,
+      date: formatDate(dateToUse + (meeting.date ? 'T12:00:00' : '')),
+      dateStr: dateForName,
       ideas: meeting.ideasCount > 0 ? ideas : []
     };
   });
@@ -1907,7 +1909,7 @@ function MeetingDetailView({ meeting, onBack, onSelectIdea, onGenerateArticle })
         <div className="idea-full-content">
           <div className="idea-full-header">
             <h1>{expandedIdea.title}</h1>
-            <p className="idea-full-meta">From: {meeting.name} • {meeting.date}</p>
+            <p className="idea-full-meta">From: {meeting.name} • {meeting.dateStr || 'Unknown date'}</p>
           </div>
 
           <div className="idea-full-body">
@@ -1960,8 +1962,8 @@ function MeetingDetailView({ meeting, onBack, onSelectIdea, onGenerateArticle })
       <div className="meeting-full-content">
         <div className="meeting-full-header">
           <div className="meeting-date-large">
-            <span className="date-month-lg">{meeting.date ? meeting.date.split(' ')[0]?.toUpperCase() : 'N/A'}</span>
-            <span className="date-day-lg">{meeting.date ? meeting.date.split(' ')[1]?.replace(',', '') : ''}</span>
+            <span className="date-month-lg">{meeting.date?.month || 'N/A'}</span>
+            <span className="date-day-lg">{meeting.date?.day || ''}</span>
           </div>
           <div className="meeting-title-block">
             <h1>{meeting.name || `Video ${meeting.videoId}`}</h1>

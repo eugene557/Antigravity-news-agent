@@ -1,0 +1,203 @@
+{
+  "metadata": {
+    "videoId": "363139",
+    "sourceFile": "data/swagit/363139_transcript.json",
+    "analyzedAt": "2026-01-03T22:25:50.761Z",
+    "model": "gpt-4o"
+  },
+  "analysis": {
+    "decisions": [
+      {
+        "topic": "Approval of November 13th, 2025 Meeting Minutes",
+        "outcome": "Approved",
+        "vote_count": "Unanimous",
+        "significance": "Routine approval of past meeting minutes."
+      },
+      {
+        "topic": "Golf Channel Games Special Permit",
+        "outcome": "Approved with conditions",
+        "vote_count": "Unanimous",
+        "significance": "Approval for a high-profile event showcasing the town on national television."
+      },
+      {
+        "topic": "Getz Subdivision Voluntary Annexation",
+        "outcome": "Approved",
+        "vote_count": "Unanimous",
+        "significance": "Annexation of property into the town, aligning with future annexation plans."
+      },
+      {
+        "topic": "Getz Subdivision Future Land Use Map Amendment",
+        "outcome": "Approved",
+        "vote_count": "Unanimous",
+        "significance": "Amendment aligns with town's comprehensive plan."
+      },
+      {
+        "topic": "Getz Subdivision Zoning Map Amendment",
+        "outcome": "Approved",
+        "vote_count": "Unanimous",
+        "significance": "Zoning change to accommodate future development consistent with town standards."
+      },
+      {
+        "topic": "East Side Future Land Use Amendment",
+        "outcome": "Approved",
+        "vote_count": "5-1",
+        "significance": "Allows for residential development, removing the bioscience overlay."
+      },
+      {
+        "topic": "West Side Future Land Use Amendment",
+        "outcome": "Denied",
+        "vote_count": "Unanimous",
+        "significance": "Maintains current industrial zoning, suggests expanding allowable uses."
+      },
+      {
+        "topic": "East Side Zoning Map Amendment",
+        "outcome": "Approved",
+        "vote_count": "Unanimous",
+        "significance": "Changes zoning to R1, allowing for residential development with a trip cap and workforce housing."
+      },
+      {
+        "topic": "West Side Zoning Map Amendment",
+        "outcome": "Denied",
+        "vote_count": "5-1",
+        "significance": "Maintains current zoning, preventing residential development."
+      }
+    ],
+    "topics_debated": [
+      {
+        "title": "Golf Channel Games Special Permit",
+        "summary": "Discussion on the special permit for a televised golf event at Trump National.",
+        "key_points": [
+          "Event to be aired nationally, showcasing Jupiter.",
+          "Concerns about traffic, security, and noise addressed.",
+          "Temporary structures and lighting logistics discussed."
+        ],
+        "speakers": [
+          "Donaldson Hearing",
+          "Scott Thatcher",
+          "Commissioner Kelso"
+        ]
+      },
+      {
+        "title": "Getz Subdivision Annexation and Zoning",
+        "summary": "Consideration of annexation and zoning changes for a property on Center Street.",
+        "key_points": [
+          "Property to be annexed into the town.",
+          "Zoning changes to align with town's comprehensive plan.",
+          "Discussion on water supply and existing county zoning."
+        ],
+        "speakers": [
+          "Sam Pol Check",
+          "Joseph Dre",
+          "Donaldson Hearing"
+        ]
+      },
+      {
+        "title": "Bioscience Research Protection Overlay",
+        "summary": "Discussion on whether to remove the bioscience overlay to allow residential development.",
+        "key_points": [
+          "Overlay was established to support bioscience clusters.",
+          "Consideration of traffic reduction versus maintaining industrial use."
+        ],
+        "speakers": [
+          "Commissioner Kelso",
+          "John Sickler"
+        ]
+      },
+      {
+        "title": "Industrial vs Residential Development",
+        "summary": "Debate on maintaining industrial zoning versus converting to residential.",
+        "key_points": [
+          "Industrial space is tight in the town.",
+          "Residential development could lead to a bedroom community."
+        ],
+        "speakers": [
+          "Commissioner Kelso",
+          "Commissioner Rogol"
+        ]
+      }
+    ],
+    "notable_quotes": [
+      {
+        "text": "This is a really exciting opportunity if you're a resident of the town of Jupiter.",
+        "speaker": "Donaldson Hearing",
+        "context": "Discussing the Golf Channel Games event.",
+        "timestamp": "N/A"
+      },
+      {
+        "text": "This project represents a 70 to 80% reduction of trips that have already been planned for and anticipated for Indiantown Road.",
+        "speaker": "Zacha Sara",
+        "context": "Explaining the traffic benefits of the Beacon Park residential proposal.",
+        "timestamp": "N/A"
+      },
+      {
+        "text": "You're trying to put a square peg in a round hole.",
+        "speaker": "Commissioner Kelso",
+        "context": "Referring to challenges of developing the site under current zoning.",
+        "timestamp": "N/A"
+      },
+      {
+        "text": "This seems to be backwards. Nobody has shown that we need to fire the biotech overlay.",
+        "speaker": "Commissioner Rogol",
+        "context": "Questioning the rationale behind removing the bioscience overlay.",
+        "timestamp": "N/A"
+      }
+    ],
+    "action_items": [
+      {
+        "description": "Add temporary parking directional signs near the offsite parking area at the discretion of staff.",
+        "responsible_party": "Town Staff",
+        "deadline": "Before December 17th, 2025"
+      },
+      {
+        "description": "Correct the scrivener's error in condition 2 to reflect the event starting at 5:00 PM instead of 7:00 PM.",
+        "responsible_party": "Town Staff",
+        "deadline": "Before December 17th, 2025"
+      },
+      {
+        "description": "Consider a trip cap for future land use map amendments.",
+        "responsible_party": "Town Council",
+        "deadline": "Future meeting"
+      },
+      {
+        "description": "Evaluate expanding allowable uses in the industrial zone.",
+        "responsible_party": "Town Council",
+        "deadline": "Future meeting"
+      }
+    ],
+    "newsworthy_highlights": [
+      {
+        "headline_suggestion": "Jupiter to Shine on National TV with Golf Channel Games",
+        "why_newsworthy": "The event will showcase Jupiter on a national platform, potentially boosting local tourism.",
+        "key_facts": [
+          "Event to be aired on December 17th on the Golf Channel.",
+          "Features top golfers like Scotty Scheffler and Rory McIlroy."
+        ]
+      },
+      {
+        "headline_suggestion": "Jupiter Approves Annexation and Zoning Changes for Future Development",
+        "why_newsworthy": "The annexation aligns with the town's growth strategy and comprehensive plan.",
+        "key_facts": [
+          "Property on Center Street annexed into the town.",
+          "Zoning changes approved to facilitate future development."
+        ]
+      },
+      {
+        "headline_suggestion": "Town Council Approves Residential Development on East Side, Maintains Industrial Zoning on West",
+        "why_newsworthy": "Significant change in land use policy impacting local development.",
+        "key_facts": [
+          "East side approved for residential development.",
+          "West side maintains industrial zoning with potential for expanded uses."
+        ]
+      },
+      {
+        "headline_suggestion": "Debate Over Bioscience Overlay Sparks Discussion on Town's Development Future",
+        "why_newsworthy": "Highlights the tension between economic development and residential expansion.",
+        "key_facts": [
+          "Bioscience overlay removal considered.",
+          "Concerns about becoming a bedroom community."
+        ]
+      }
+    ],
+    "meeting_summary": "The town council meeting addressed several key issues, including the approval of a special permit for a nationally televised golf event, which raised concerns about traffic and security, and the annexation of a property into the town. Additionally, the council approved residential development on the east side of a road while maintaining industrial zoning on the west side, with discussions on expanding allowable uses and debating the removal of the bioscience overlay."
+  }
+}

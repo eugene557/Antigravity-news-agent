@@ -1,0 +1,77 @@
+{
+  "metadata": {
+    "videoId": "364781",
+    "generatedAt": "2026-01-03T22:40:53.714Z"
+  },
+  "ideas": [
+    {
+      "id": "1",
+      "event": "Jupiter Fire Rescue Department Update and Purchase Approval",
+      "title": "Jupiter Fire Rescue Prepares for 2026 Launch",
+      "summary": "The Jupiter Fire Rescue Department presented an update to the town council, highlighting the progress made towards their 2026 operational launch. They have completed hiring, construction of new fire stations, and are acquiring necessary equipment, including self-contained breathing apparatus. The council approved the purchase of the SCBAs, marking a significant step toward ensuring the department is fully equipped.",
+      "angles": [
+        {
+          "name": "Community Safety Initiative",
+          "description": "Focus on how the new Jupiter Fire Rescue Department will enhance safety and emergency response times for local residents.",
+          "prompt_hint": "Explore how the new fire department will improve community safety."
+        },
+        {
+          "name": "Fiscal Responsibility",
+          "description": "Examine the financial aspects of setting up the new fire department, including budget allocations and cost-effectiveness of the equipment purchased.",
+          "prompt_hint": "Discuss the financial planning and budget implications of the new fire department setup."
+        },
+        {
+          "name": "Technological Advancements",
+          "description": "Highlight the cutting-edge technology being adopted by Jupiter Fire Rescue, such as the new SCBAs, and how it positions the department as a leader in fire safety.",
+          "prompt_hint": "Describe the new technologies being implemented and their benefits."
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "event": "Temporary Fire Station Approval for Abacoa Area",
+      "title": "Jupiter Council Greenlights Temporary Fire Station in Abacoa",
+      "summary": "The town council approved plans for a temporary fire station at Abacoa Community Park to ensure continuous fire and emergency services during the transition phase. This temporary setup is necessary due to the upcoming transition of the existing Abacoa station to town ownership.",
+      "angles": [
+        {
+          "name": "Community Impact",
+          "description": "Analyze the impact of the temporary fire station on Abacoa residents, including concerns about traffic and parking.",
+          "prompt_hint": "Investigate how the temporary fire station will affect local residents and businesses."
+        },
+        {
+          "name": "Operational Transition",
+          "description": "Detail the operational logistics and planning involved in transitioning to the new fire department setup, and how the temporary station fits into this plan.",
+          "prompt_hint": "Outline the transition plan for the new fire department services."
+        },
+        {
+          "name": "Neighborhood Engagement",
+          "description": "Explore how the fire department and town council are engaging with local communities to address concerns and keep residents informed.",
+          "prompt_hint": "Discuss the communication strategies with local communities regarding the fire station."
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "event": "Citizens Express Concerns Over Development and Public Access",
+      "title": "Jupiter Residents Voice Concerns Over Rapid Development and Loss of Public Spaces",
+      "summary": "During the town council meeting, several residents expressed concerns about the rapid development in Jupiter, particularly the lack of public boat ramps and the potential loss of a long-standing boat rental business due to rising rents and development pressures.",
+      "angles": [
+        {
+          "name": "Preserving Public Spaces",
+          "description": "Focus on the community's desire to preserve and enhance public access to waterways and recreational areas.",
+          "prompt_hint": "Highlight community efforts to preserve public access to natural resources."
+        },
+        {
+          "name": "Economic Impact on Local Businesses",
+          "description": "Discuss how rising costs and development are affecting local businesses, particularly those reliant on waterfront access.",
+          "prompt_hint": "Examine the economic challenges faced by local businesses due to development."
+        },
+        {
+          "name": "Historical Perspective",
+          "description": "Provide a historical context of Jupiter's development over the years and the community's response to changes.",
+          "prompt_hint": "Explore the historical development of Jupiter and community sentiments."
+        }
+      ]
+    }
+  ]
+}

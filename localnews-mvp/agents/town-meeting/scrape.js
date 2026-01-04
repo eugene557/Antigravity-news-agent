@@ -1,0 +1,346 @@
+#!/usr/bin/env node
+
+/**
+ * Town Meeting Scraper (Orchestrator)
+ *
+ * Orchestrates the full pipeline for the dashboard:
+ * 1. Download Video (scripts/swagit_downloader.js)
+ * 2. Transcribe (agents/town-meeting/transcribe.js)
+ * 3. Analyze (agents/town-meeting/analyze.js)
+ *
+ * Modes:
+ * - Default: Fetches latest meeting from Swagit for the selected department
+ * - Upcoming: Processes scheduled meetings from meetings.json when their date has passed
+ *
+ * This satisfies server.js expectation of a 'scrape.js' entry point.
+ */
+
+import { spawn } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT_DIR = path.join(__dirname, '../../');
+
+// Configuration
+const DOWNLOADER_SCRIPT = path.join(ROOT_DIR, 'scripts/swagit_downloader.js');
+const TRANSCRIBE_SCRIPT = path.join(__dirname, 'transcribe.js');
+const ANALYZE_SCRIPT = path.join(__dirname, 'analyze.js');
+
+const DATA_DIR = path.join(ROOT_DIR, 'data/swagit');
+const SETTINGS_PATH = path.join(ROOT_DIR, 'data/town_meeting_settings.json');
+const MEETINGS_PATH = path.join(ROOT_DIR, 'data/meetings.json');
+
+async function runStep(scriptPath, args = [], extraEnv = {}) {
+    console.log(`\n▶️ Running: ${path.basename(scriptPath)} ${args.join(' ')}`);
+    return new Promise((resolve, reject) => {
+        const proc = spawn('node', [scriptPath, ...args], {
+            cwd: ROOT_DIR,
+            stdio: 'inherit',
+            env: { ...process.env, ...extraEnv }
+        });
+
+        proc.on('close', (code) => {
+            if (code === 0) resolve();
+            else reject(new Error(`${path.basename(scriptPath)} failed with code ${code}`));
+        });
+
+        proc.on('error', reject);
+    });
+}
+
+// Custom error class for "no new meetings" scenario
+class NoNewMeetingsError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'NoNewMeetingsError';
+    }
+}
+
+async function getLatestMeetingId(departmentId = 'town-council') {
+    let swagitUrl = 'https://jupiterfl.new.swagit.com/views/229/'; // Default
+
+    try {
+        if (fs.existsSync(SETTINGS_PATH)) {
+            const settings = JSON.parse(fs.readFileSync(SETTINGS_PATH, 'utf-8'));
+            const dept = settings.departments.find(d => d.id === departmentId);
+            if (dept && dept.viewId) {
+                swagitUrl = `https://jupiterfl.new.swagit.com/views/${dept.viewId}/`;
+                console.log(`🔎 Found view ID ${dept.viewId} for department "${dept.name}"`);
+            } else {
+                console.warn(`⚠️  Department "${departmentId}" not found or has no viewId. Using default Town Council.`);
+            }
+        }
+    } catch (e) {
+        console.warn(`⚠️  Error loading settings: ${e.message}. Using default.`);
+    }
+
+    console.log(`🔎 Finding latest meeting for: ${swagitUrl}`);
+    return new Promise((resolve, reject) => {
+        const proc = spawn('node', [path.join(ROOT_DIR, 'scripts/fetch_latest_meeting.js'), swagitUrl], {
+            cwd: ROOT_DIR,
+            env: process.env
+        });
+
+        let output = '';
+        let stderr = '';
+        proc.stdout.on('data', (data) => { output += data.toString(); });
+        proc.stderr.on('data', (data) => { stderr += data.toString(); });
+
+        proc.on('close', (code) => {
+            if (code === 0) {
+                const id = output.trim();
+                if (id && /^\d+$/.test(id)) {
+                    console.log(`   Found latest meeting ID: ${id}`);
+                    resolve(id);
+                } else {
+                    reject(new Error(`Invalid ID returned: ${output}`));
+                }
+            } else if (code === 2 || stderr.includes('NO_NEW_MEETINGS')) {
+                // Special exit code 2 means "no new meetings found" (not an error)
+                reject(new NoNewMeetingsError('No new Jupiter meetings found on Swagit'));
+            } else {
+                reject(new Error(`Failed to fetch meeting ID: ${stderr.trim() || 'Unknown error'}`));
+            }
+        });
+    });
+}
+
+/**
+ * Get upcoming meetings that are ready to be processed
+ * (date has passed and status is still 'upcoming')
+ */
+function getReadyUpcomingMeetings(departmentId = null) {
+    if (!fs.existsSync(MEETINGS_PATH)) {
+        return [];
+    }
+
+    try {
+        const meetings = JSON.parse(fs.readFileSync(MEETINGS_PATH, 'utf-8'));
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        return meetings.filter(m => {
+            // Only upcoming meetings whose date has passed
+            if (m.status !== 'upcoming') return false;
+            const meetingDate = new Date(m.date + 'T23:59:59');
+            if (meetingDate > today) return false;
+            // Filter by department if specified
+            if (departmentId && m.departmentId !== departmentId) return false;
+            return true;
+        });
+    } catch (e) {
+        console.warn(`⚠️  Error reading meetings: ${e.message}`);
+        return [];
+    }
+}
+
+/**
+ * Update meeting status in meetings.json
+ */
+function updateMeetingStatus(meetingId, status, videoId = null) {
+    if (!fs.existsSync(MEETINGS_PATH)) return;
+
+    try {
+        const meetings = JSON.parse(fs.readFileSync(MEETINGS_PATH, 'utf-8'));
+        const meeting = meetings.find(m => m.id === meetingId);
+        if (meeting) {
+            meeting.status = status;
+            if (videoId) meeting.videoId = videoId;
+            meeting.processedAt = new Date().toISOString();
+            fs.writeFileSync(MEETINGS_PATH, JSON.stringify(meetings, null, 2));
+            console.log(`📝 Updated meeting ${meetingId} status to: ${status}`);
+        }
+    } catch (e) {
+        console.warn(`⚠️  Error updating meeting: ${e.message}`);
+    }
+}
+
+/**
+ * Register a newly processed meeting in meetings.json
+ */
+function registerProcessedMeeting(videoId, departmentId) {
+    try {
+        // Load existing meetings
+        let meetings = [];
+        if (fs.existsSync(MEETINGS_PATH)) {
+            meetings = JSON.parse(fs.readFileSync(MEETINGS_PATH, 'utf-8'));
+        }
+
+        // Check if already registered
+        if (meetings.some(m => m.videoId === videoId)) {
+            console.log(`📋 Meeting ${videoId} already registered.`);
+            return;
+        }
+
+        // Load department info
+        let departmentName = departmentId;
+        try {
+            if (fs.existsSync(SETTINGS_PATH)) {
+                const settings = JSON.parse(fs.readFileSync(SETTINGS_PATH, 'utf-8'));
+                const dept = settings.departments.find(d => d.id === departmentId);
+                if (dept) departmentName = dept.name;
+            }
+        } catch (e) { /* ignore */ }
+
+        // Load transcript for metadata
+        let durationMinutes = 0;
+        let meetingDate = new Date().toISOString().split('T')[0];
+        const transcriptPath = path.join(DATA_DIR, `${videoId}_transcript.json`);
+        if (fs.existsSync(transcriptPath)) {
+            try {
+                const transcript = JSON.parse(fs.readFileSync(transcriptPath, 'utf-8'));
+                durationMinutes = transcript.durationMinutes || 0;
+                // Try to extract date from transcript if available
+                if (transcript.transcribedAt) {
+                    meetingDate = transcript.transcribedAt.split('T')[0];
+                }
+            } catch (e) { /* ignore */ }
+        }
+
+        // Load analysis for description
+        let description = `${departmentName} Meeting`;
+        const analysisPath = path.join(DATA_DIR, `${videoId}_analysis.json`);
+        if (fs.existsSync(analysisPath)) {
+            try {
+                const analysis = JSON.parse(fs.readFileSync(analysisPath, 'utf-8'));
+                if (analysis.analysis?.meeting_summary) {
+                    // Truncate to first 100 chars for description
+                    description = analysis.analysis.meeting_summary.slice(0, 150);
+                    if (analysis.analysis.meeting_summary.length > 150) description += '...';
+                }
+            } catch (e) { /* ignore */ }
+        }
+
+        // Create meeting entry
+        const newMeeting = {
+            id: videoId,
+            videoId: videoId,
+            departmentId: departmentId,
+            type: `${departmentName} Meeting`,
+            date: meetingDate,
+            status: 'processed',
+            processedAt: new Date().toISOString(),
+            description: description,
+            durationMinutes: durationMinutes
+        };
+
+        meetings.push(newMeeting);
+        fs.writeFileSync(MEETINGS_PATH, JSON.stringify(meetings, null, 2));
+        console.log(`✅ Registered meeting ${videoId} in meetings.json`);
+
+    } catch (e) {
+        console.warn(`⚠️  Could not register meeting: ${e.message}`);
+    }
+}
+
+/**
+ * Process a single video through the pipeline
+ *
+ * FAST_MODE (default: true): Skip video download if VTT transcript exists
+ * This reduces processing time from ~30 min to ~3 min for most meetings
+ */
+async function processVideo(videoId) {
+    const fastMode = process.env.FAST_MODE !== 'false'; // Default to true
+
+    console.log(`\n⚡ Processing video ${videoId} (FAST_MODE: ${fastMode ? 'ON' : 'OFF'})`);
+
+    // 1. Download VTT (and optionally video if no VTT)
+    await runStep(DOWNLOADER_SCRIPT, [videoId], { FAST_MODE: String(fastMode) });
+
+    // 2. Transcribe - now accepts video ID and auto-detects VTT vs MP4
+    const transcriptPath = path.join(DATA_DIR, `${videoId}_transcript.json`);
+
+    if (!fs.existsSync(transcriptPath)) {
+        // Transcribe will auto-detect VTT and use it if available (fast!)
+        await runStep(TRANSCRIBE_SCRIPT, [videoId]);
+    } else {
+        console.log('\n⏩ Transcript already exists, skipping transcription');
+    }
+
+    // 3. Analyze
+    await runStep(ANALYZE_SCRIPT, [transcriptPath]);
+}
+
+async function main() {
+    console.log('🏛️  Town Meeting Orchestrator Starting...');
+
+    const departmentId = process.env.DEPARTMENT_ID || 'town-council';
+    const mode = process.env.SCRAPE_MODE || 'latest'; // 'latest' or 'upcoming'
+
+    try {
+        if (mode === 'upcoming') {
+            // Process scheduled meetings that are ready
+            const readyMeetings = getReadyUpcomingMeetings(departmentId);
+
+            if (readyMeetings.length === 0) {
+                console.log('📭 No upcoming meetings ready to process.');
+                console.log('   Falling back to latest meeting mode...');
+            } else {
+                console.log(`📅 Found ${readyMeetings.length} scheduled meeting(s) ready to process:`);
+                for (const meeting of readyMeetings) {
+                    console.log(`   - ${meeting.type} on ${meeting.date}${meeting.description ? ` (${meeting.description})` : ''}`);
+                }
+
+                // For each ready meeting, try to find and process the video
+                for (const meeting of readyMeetings) {
+                    console.log(`\n🔍 Processing: ${meeting.type} (${meeting.date})`);
+
+                    try {
+                        // Get the latest video for this department
+                        const videoId = await getLatestMeetingId(meeting.departmentId);
+
+                        // Process it
+                        await processVideo(videoId);
+
+                        // Mark as processed
+                        updateMeetingStatus(meeting.id, 'processed', videoId);
+
+                        console.log(`✅ Successfully processed meeting: ${meeting.id}`);
+                    } catch (e) {
+                        console.error(`❌ Failed to process meeting ${meeting.id}: ${e.message}`);
+                        updateMeetingStatus(meeting.id, 'failed');
+                    }
+                }
+
+                console.log('\n✅ Upcoming meetings processing complete.');
+                return;
+            }
+        }
+
+        // Default: Get latest meeting
+        console.log(`\n📺 Fetching latest meeting for department: ${departmentId}`);
+
+        let videoId = process.env.VIDEO_ID;
+        try {
+            videoId = await getLatestMeetingId(departmentId);
+        } catch (e) {
+            // Handle "no new meetings" as a success case, not an error
+            if (e instanceof NoNewMeetingsError) {
+                console.log('\n📭 NO_NEW_MEETINGS_FOUND');
+                console.log('   No new Jupiter meetings are available on Swagit.');
+                console.log('   This is normal - check back after the next council meeting.\n');
+                process.exit(0); // Exit successfully - this is not an error
+            }
+            console.warn(`⚠️  Could not fetch latest meeting dynamically (${e.message}). Using fallback: ${videoId}`);
+        }
+
+        if (!videoId) {
+            throw new Error('No video ID available. Cannot proceed.');
+        }
+
+        await processVideo(videoId);
+
+        // 4. Register the meeting in meetings.json for the dashboard
+        registerProcessedMeeting(videoId, departmentId);
+
+        console.log('\n✅ Orchestration Complete. Analysis ready for generation.');
+
+    } catch (error) {
+        console.error('\n❌ Orchestration Failed:', error.message);
+        process.exit(1);
+    }
+}
+
+main();

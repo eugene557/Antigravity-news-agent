@@ -1,0 +1,379 @@
+{
+  "metadata": {
+    "sourceFile": "/Users/eugenehilton/.gemini/antigravity/playground/ghost-interstellar/localnews-mvp/data/crime/incidents_12-02-2025_to_01-01-2026.json",
+    "generatedAt": "2026-01-01T21:44:43.633Z",
+    "model": "gpt-4o",
+    "totalIncidents": 77,
+    "newsworthyIncidents": 14,
+    "newIncidents": 14,
+    "skippedDuplicates": 0,
+    "articlesGenerated": 14,
+    "estimatedCost": "~$0.07"
+  },
+  "articles": [
+    {
+      "incident": {
+        "id": "EVE18208705810331671061:3533515724",
+        "referenceId": "25004571",
+        "crime": "BATTERY - SIMPLE",
+        "crimeClass": "Assault - Simple",
+        "dateTime": "2025-12-28 16:49:59.000",
+        "locationType": "RESIDENCE/HOME"
+      },
+      "generated": {
+        "headline": "Simple Battery Incident Reported on S Loxahatchee Dr",
+        "brief": "A simple battery incident occurred at a residence in the 700 block of S Loxahatchee Dr in Jupiter, FL, on Sunday, December 28, 2025, at approximately 4:49 PM. Jupiter Police responded to the call and are currently investigating the situation. No arrests have been reported at this time. Residents in the area are advised to remain vigilant and report any suspicious activity to the authorities. For any information related to this incident, please contact the Jupiter Police Department.",
+        "social_posts": {
+          "twitter": "A simple battery was reported at a home on S Loxahatchee Dr, Jupiter, on Dec 28 at 4:49 PM. No arrests yet. Stay alert and report any suspicious activity. #JupiterFL",
+          "facebook": "Jupiter Police are investigating a simple battery incident that took place on Sunday afternoon at a residence on S Loxahatchee Dr. No arrests have been made. If you have any information, please contact the Jupiter Police Department.",
+          "nextdoor": "Neighbors, a simple battery was reported on S Loxahatchee Dr on Sunday afternoon. Let's stay vigilant and look out for one another. If you notice anything unusual, please report it to the Jupiter Police."
+        },
+        "severity": "medium",
+        "tags": [
+          "crime",
+          "battery",
+          "S Loxahatchee Dr",
+          "Jupiter"
+        ]
+      }
+    },
+    {
+      "incident": {
+        "id": "EVE3515061745832152935:3533515703",
+        "referenceId": "25004546",
+        "crime": "BATTERY - SIMPLE",
+        "crimeClass": "Assault - Simple",
+        "dateTime": "2025-12-27 02:17:59.000",
+        "locationType": "BAR/NIGHTCLUB"
+      },
+      "generated": {
+        "headline": "Simple Battery Incident at Center St Bar in Jupiter",
+        "brief": "A simple battery incident occurred early Saturday morning at a bar located on Center Street in Jupiter, according to Jupiter Police reports. The altercation took place around 2:17 a.m. on December 27, 2025. Details surrounding the individuals involved have not been disclosed, and it is unclear if any arrests have been made at this time. Authorities are investigating the situation and urge anyone with information to come forward. Patrons in the area are advised to remain vigilant and report any suspicious activity to the Jupiter Police Department.",
+        "social_posts": {
+          "twitter": "Simple battery reported at a Center St bar in Jupiter early Saturday. Incident occurred around 2:17 AM. Police are investigating. #JupiterFL",
+          "facebook": "A simple battery incident was reported at a bar on Center Street in Jupiter early Saturday morning. Jupiter Police are investigating the situation. Anyone with information is urged to contact the authorities.",
+          "nextdoor": "Neighbors, be aware of a simple battery incident that occurred early Saturday morning at a bar on Center Street. Stay safe and report any unusual activity to Jupiter Police."
+        },
+        "severity": "medium",
+        "tags": [
+          "crime",
+          "battery",
+          "Center Street",
+          "nightlife"
+        ]
+      }
+    },
+    {
+      "incident": {
+        "id": "EVE1109181498828352142:3533125719",
+        "referenceId": "25004422",
+        "crime": "BURGLARY-STRUCTURE WITH ASSAULT OR BATTERY",
+        "crimeClass": "Burglary - Residential",
+        "dateTime": "2025-12-18 04:50:00.000",
+        "locationType": "RESIDENCE/HOME"
+      },
+      "generated": {
+        "headline": "Residential Burglary with Assault on University Blvd, Jupiter",
+        "brief": "A residential burglary involving assault occurred early Thursday morning on University Boulevard in Jupiter. The incident took place at approximately 4:50 a.m., according to Jupiter Police reports. Officers responded to a home in the 800 block where the burglary was reported. No details about the suspects have been released, and it is unclear if any arrests have been made at this time. Residents in the area are advised to remain vigilant and report any suspicious activity to the Jupiter Police Department. Homeowners are encouraged to ensure their properties are secure, especially during nighttime hours.",
+        "social_posts": {
+          "twitter": "A burglary with assault occurred at a residence on University Blvd in #JupiterFL early Thursday morning. No suspects identified yet. Stay alert and report suspicious activity to Jupiter Police.",
+          "facebook": "Jupiter Police are investigating a burglary with assault that took place early Thursday morning on University Boulevard. No suspects have been identified yet. If you have any information, please contact the Jupiter Police Department.",
+          "nextdoor": "Neighbors, please be aware of a burglary with assault that occurred early Thursday morning on University Blvd. Keep an eye out for any suspicious activity and ensure your homes are secure. Let's keep our community safe!"
+        },
+        "severity": "high",
+        "tags": [
+          "crime",
+          "burglary",
+          "assault",
+          "Jupiter"
+        ]
+      }
+    },
+    {
+      "incident": {
+        "id": "EVE10944108821433663318:3533125735",
+        "referenceId": "25004413",
+        "crime": "BURGLARY - CONVEYANCE OCCUPPIED",
+        "crimeClass": "Burglary from Motor Vehicle",
+        "dateTime": "2025-12-16 23:00:00.000",
+        "locationType": "PARKING/DROP LOT/GARAGE"
+      },
+      "generated": {
+        "headline": "Burglary from Vehicle Reported on W Indiantown Rd, Jupiter",
+        "brief": "A burglary from a motor vehicle occurred late Tuesday night in a parking lot located in the 1600 block of W Indiantown Rd, Jupiter. The incident took place around 11:00 PM, according to Jupiter Police reports. There is no indication yet if any suspects have been identified or arrested. Residents are advised to ensure their vehicles are locked and valuables are not left in plain sight to deter such crimes. Anyone with information is encouraged to contact the Jupiter Police Department.",
+        "social_posts": {
+          "twitter": "Burglary from a vehicle reported in the 1600 block of W Indiantown Rd, #JupiterFL. Happened around 11 PM on Dec 16. Keep vehicles locked and valuables hidden. Contact Jupiter PD with info.",
+          "facebook": "A vehicle burglary occurred Tuesday night in the 1600 block of W Indiantown Rd, Jupiter. Police advise securing vehicles and keeping valuables out of sight. If you have information, please contact the Jupiter Police Department.",
+          "nextdoor": "Neighbors, a vehicle burglary happened Tuesday night in the 1600 block of W Indiantown Rd. Let's stay vigilant by locking our cars and keeping valuables hidden. If you saw anything suspicious, please report it to the Jupiter Police."
+        },
+        "severity": "medium",
+        "tags": [
+          "crime",
+          "burglary",
+          "vehicle",
+          "Jupiter"
+        ]
+      }
+    },
+    {
+      "incident": {
+        "id": "EVE5323960500639371050:3532582392",
+        "referenceId": "25004354",
+        "crime": "LEWD - EXPOSURE OF SEXUAL ORGANS",
+        "crimeClass": "Sexual Offense",
+        "dateTime": "2025-12-12 10:12:59.000",
+        "locationType": "PARKING/DROP LOT/GARAGE"
+      },
+      "generated": {
+        "headline": "Lewd Exposure Incident Reported Near W Indiantown Rd, Jupiter",
+        "brief": "A lewd exposure incident occurred in the parking area near the 800 block of W Indiantown Rd in Jupiter on Friday, December 12, 2025, at approximately 10:12 a.m., according to Jupiter Police reports. The incident involved exposure of sexual organs, classified as a sexual offense. Authorities have not released information on any suspects at this time. Residents are advised to remain vigilant and report any suspicious behavior to the Jupiter Police Department. Anyone with information about the incident is encouraged to contact local law enforcement.",
+        "social_posts": {
+          "twitter": "Lewd exposure reported near 800 block of W Indiantown Rd, Jupiter, on Dec 12 at 10:12 a.m. No suspects identified. Stay alert and report suspicious activity. #JupiterFL",
+          "facebook": "A lewd exposure incident was reported near the 800 block of W Indiantown Rd in Jupiter on Friday morning. Police have not identified any suspects. If you have information, please contact Jupiter Police.",
+          "nextdoor": "Neighbors, please be aware that a lewd exposure incident occurred in the parking area near W Indiantown Rd on Friday morning. Stay vigilant and report any unusual activity to the police. Let's keep our community safe."
+        },
+        "severity": "medium",
+        "tags": [
+          "crime",
+          "lewd exposure",
+          "sexual offense",
+          "Jupiter"
+        ]
+      }
+    },
+    {
+      "incident": {
+        "id": "EVE9909247064648018132:3532838782",
+        "referenceId": "25004378",
+        "crime": "BURGLARY-STRUCTURE UNOCCUPPIED",
+        "crimeClass": "Burglary - Residential",
+        "dateTime": "2025-12-12 10:01:00.000",
+        "locationType": "CHURCH/SYNAGOGUE/TEMPLE/MOSQUE"
+      },
+      "generated": {
+        "headline": "Burglary Reported at Religious Facility on W Indiantown Rd",
+        "brief": "A burglary occurred at an unoccupied religious facility in the 1200 block of West Indiantown Road in Jupiter on Friday morning. The incident was reported at 10:01 a.m., according to Jupiter Police. No suspects have been identified or arrested at this time. Police are urging anyone with information to come forward. Residents are advised to ensure all doors and windows are securely locked when buildings are unoccupied to prevent similar incidents.",
+        "social_posts": {
+          "twitter": "A burglary was reported at an unoccupied religious facility on W Indiantown Rd, Jupiter, Friday morning. No arrests yet. #JupiterFL",
+          "facebook": "A burglary took place at an unoccupied religious facility on West Indiantown Road in Jupiter on Friday morning. No suspects have been identified. If you have any information, please contact the Jupiter Police Department.",
+          "nextdoor": "Neighbors, a burglary occurred at a religious facility on W Indiantown Rd this Friday morning. Let's stay vigilant and report any suspicious activity to the police. Remember to keep your properties secure, especially when unoccupied."
+        },
+        "severity": "medium",
+        "tags": [
+          "crime",
+          "burglary",
+          "Jupiter",
+          "Indiantown Rd"
+        ]
+      }
+    },
+    {
+      "incident": {
+        "id": "EVE18118999148697260976:3532773018",
+        "referenceId": "25004352",
+        "crime": "ROBBERY- BY SUDDEN SNATCHING W/OUT WEAPON",
+        "crimeClass": "Robbery - Individual",
+        "dateTime": "2025-12-11 19:29:59.000",
+        "locationType": "RESTAURANT"
+      },
+      "generated": {
+        "headline": "Robbery by Snatching at Restaurant on S US Highway in Jupiter",
+        "brief": "A robbery occurred at a restaurant in the 300 block of S US Highway in Jupiter on Thursday evening, December 11, 2025, at approximately 7:29 PM. According to Jupiter Police reports, an individual was targeted in a sudden snatching incident. No weapon was involved, and there have been no arrests reported at this time. Police are urging anyone with information about the incident to come forward. Residents and visitors are reminded to remain vigilant and secure personal belongings, especially in public places.",
+        "social_posts": {
+          "twitter": "A robbery by sudden snatching occurred at a restaurant on S US Highway in Jupiter. No weapon was involved. Jupiter Police are investigating. #JupiterFL",
+          "facebook": "A robbery by sudden snatching took place at a restaurant on S US Highway in Jupiter on Thursday evening. No weapon was involved, and police are seeking information. If you have any tips, please contact Jupiter Police Department.",
+          "nextdoor": "Neighbors, please be aware of a robbery by sudden snatching that occurred at a restaurant on S US Highway. No weapon was used, but stay alert and keep your belongings secure when out in public. Report any suspicious activity to the Jupiter Police."
+        },
+        "severity": "medium",
+        "tags": [
+          "crime",
+          "robbery",
+          "restaurant",
+          "Jupiter"
+        ]
+      }
+    },
+    {
+      "incident": {
+        "id": "EVE9454519154850738998:3532773013",
+        "referenceId": "25004347",
+        "crime": "THEFT - VEHICLE AUTO",
+        "crimeClass": "Motor Vehicle Theft",
+        "dateTime": "2025-12-11 16:55:59.000",
+        "locationType": "PARKING/DROP LOT/GARAGE"
+      },
+      "generated": {
+        "headline": "Vehicle Theft Reported in Parking Lot on S US Highway",
+        "brief": "A motor vehicle theft occurred at a parking lot in the 300 block of S US Highway in Jupiter, FL, on Thursday, December 11, 2025, at approximately 4:55 PM. According to Jupiter Police reports, the theft took place in a parking/drop lot/garage area. No suspects have been identified or arrested at this time. Residents are advised to ensure their vehicles are locked and valuables are not visible to deter theft. Anyone with information is encouraged to contact the Jupiter Police Department.",
+        "social_posts": {
+          "twitter": "A vehicle was stolen from a parking lot on S US Highway in Jupiter, FL, around 4:55 PM on Dec 11, 2025. No suspects identified yet. #JupiterFL",
+          "facebook": "A vehicle theft occurred in a parking lot on S US Highway in Jupiter on December 11, 2025, at 4:55 PM. Police are investigating, and no suspects have been identified. If you have any information, please contact Jupiter Police.",
+          "nextdoor": "Neighbors, please be aware that a vehicle was stolen from a parking lot on S US Highway. This happened on December 11 at 4:55 PM. Let's stay vigilant and report any suspicious activity to the Jupiter Police."
+        },
+        "severity": "medium",
+        "tags": [
+          "crime",
+          "theft",
+          "vehicle",
+          "Jupiter"
+        ]
+      }
+    },
+    {
+      "incident": {
+        "id": "EVE10318769497224439890:3532582408",
+        "referenceId": "25006214",
+        "crime": "BATTERY - SIMPLE",
+        "crimeClass": "Assault - Simple",
+        "dateTime": "2025-12-10 14:05:59.000",
+        "locationType": "PARKING/DROP LOT/GARAGE"
+      },
+      "generated": {
+        "headline": "Simple Battery Incident Reported in Palm Beach Gardens Lot",
+        "brief": "A simple battery incident occurred on Wednesday, December 10, 2025, at approximately 2:05 PM in a parking lot located in the 5300 block of Donald Ross Road, according to Palm Beach Gardens Police reports. Details on the individuals involved have not been disclosed, and no arrests have been made at this time. The investigation is ongoing. Residents are advised to remain vigilant and report any suspicious activity to the authorities.",
+        "social_posts": {
+          "twitter": "A simple battery was reported in a parking lot on Donald Ross Rd, Palm Beach Gardens, on Dec 10 at 2:05 PM. No arrests yet. Stay alert and report suspicious activity. #JupiterFL",
+          "facebook": "A simple battery incident took place in the 5300 block of Donald Ross Road, Palm Beach Gardens, on December 10 at 2:05 PM. Police are investigating, and no arrests have been made. Residents should remain vigilant and report any suspicious activity.",
+          "nextdoor": "Neighbors, please be aware that a simple battery occurred in a parking lot on Donald Ross Road on December 10. Be cautious and report any unusual activity to the Palm Beach Gardens Police Department. Stay safe!"
+        },
+        "severity": "medium",
+        "tags": [
+          "crime",
+          "battery",
+          "Palm Beach Gardens"
+        ]
+      }
+    },
+    {
+      "incident": {
+        "id": "EVE17514667175612665632:3532532000",
+        "referenceId": "25004316",
+        "crime": "BURGLARY - THEFT FROM AUTO",
+        "crimeClass": "Burglary from Motor Vehicle",
+        "dateTime": "2025-12-09 15:30:59.000",
+        "locationType": "GROCERY/SUPERMARKET"
+      },
+      "generated": {
+        "headline": "Burglary from Vehicle at Grocery on W Indiantown Rd",
+        "brief": "A vehicle was burglarized at a grocery store in the 2100 block of W Indiantown Rd in Jupiter on Tuesday afternoon, December 9, 2025. The incident occurred around 3:30 PM, according to Jupiter Police reports. No suspects have been identified at this time. Police advise residents to secure their vehicles and remove valuables from sight to prevent similar incidents. Anyone with information is encouraged to contact the Jupiter Police Department.",
+        "social_posts": {
+          "twitter": "A vehicle was burglarized at a grocery store on W Indiantown Rd in #JupiterFL on Tuesday afternoon. No suspects identified. Secure your vehicles and keep valuables out of sight. Contact Jupiter Police with any info.",
+          "facebook": "A vehicle was burglarized Tuesday afternoon at a grocery store on W Indiantown Rd in Jupiter. Police have not identified any suspects yet. Residents are advised to secure their vehicles and keep valuables hidden. If you have any information, please reach out to the Jupiter Police Department.",
+          "nextdoor": "Neighbors, a car was broken into at the grocery store on W Indiantown Rd on Tuesday afternoon. Please remember to lock your vehicles and keep valuables out of sight. If you saw anything suspicious or have information, please contact the Jupiter Police Department."
+        },
+        "severity": "medium",
+        "tags": [
+          "crime",
+          "burglary",
+          "theft",
+          "Jupiter"
+        ]
+      }
+    },
+    {
+      "incident": {
+        "id": "EVE13693353170006577746:3532532018",
+        "referenceId": "25004325",
+        "crime": "SEXUAL BATTERY",
+        "crimeClass": "Sexual Assault",
+        "dateTime": "2025-12-09 15:00:00.000",
+        "locationType": "RESIDENCE/HOME"
+      },
+      "generated": {
+        "headline": "Sexual Battery Reported in Riverwalk Lane Area Residence",
+        "brief": "A sexual battery incident was reported at a residence in the 6300 block of Riverwalk Lane in Jupiter on Tuesday, December 9, 2025, at approximately 3:00 p.m., according to Jupiter Police. Details of the incident remain limited, and it is unclear if any suspects have been identified or arrested at this time. Authorities are urging anyone with information related to this case to contact the Jupiter Police Department. Residents are reminded to remain vigilant and report any suspicious activity in the area.",
+        "social_posts": {
+          "twitter": "A sexual battery incident occurred in the 6300 block of Riverwalk Ln, Jupiter, on Dec 9 at 3 PM. Police seek information. #JupiterFL",
+          "facebook": "A sexual battery was reported in a home on Riverwalk Lane in Jupiter. The incident occurred on Tuesday afternoon. Jupiter Police urge anyone with information to come forward.",
+          "nextdoor": "Neighbors, please be aware that a serious incident occurred on Riverwalk Lane. If you have any information, please contact Jupiter Police. Stay safe and look out for each other."
+        },
+        "severity": "high",
+        "tags": [
+          "crime",
+          "sexual battery",
+          "Riverwalk Lane",
+          "Jupiter"
+        ]
+      }
+    },
+    {
+      "incident": {
+        "id": "EVE9677585642226486444:3531259578",
+        "referenceId": "25004284",
+        "crime": "THEFT - VEHICLE AUTO",
+        "crimeClass": "Motor Vehicle Theft",
+        "dateTime": "2025-12-06 13:00:00.000",
+        "locationType": "SERVICE/GAS STATION"
+      },
+      "generated": {
+        "headline": "Vehicle Stolen from Gas Station on N Old Dixie Hwy",
+        "brief": "A motor vehicle theft occurred at a gas station on the 500 block of N Old Dixie Hwy in Jupiter, FL on Saturday, December 6, 2025. The incident took place around 1:00 PM, according to Jupiter Police reports. Authorities have not yet identified any suspects in connection with the theft. Residents are advised to remain vigilant and ensure their vehicles are locked and secure when left unattended. Anyone with information regarding this incident is encouraged to contact the Jupiter Police Department.",
+        "social_posts": {
+          "twitter": "A vehicle was stolen from a gas station on N Old Dixie Hwy in #JupiterFL on Dec 6. The theft occurred around 1 PM. Police are seeking information. Stay alert and secure your vehicles.",
+          "facebook": "A vehicle theft took place at a gas station on the 500 block of N Old Dixie Hwy in Jupiter on Saturday afternoon. If you have any information, please contact the Jupiter Police Department. Remember to lock your vehicles and stay aware of your surroundings.",
+          "nextdoor": "Neighbors, a car was stolen from the gas station on N Old Dixie Hwy on Saturday afternoon. Please remember to lock your vehicles and report any suspicious activity to the Jupiter Police Department. Stay safe!"
+        },
+        "severity": "medium",
+        "tags": [
+          "crime",
+          "theft",
+          "vehicle",
+          "Jupiter"
+        ]
+      }
+    },
+    {
+      "incident": {
+        "id": "EVE8104583879668577722:3531259562",
+        "referenceId": "25004242",
+        "crime": "BURGLARY - THEFT FROM AUTO",
+        "crimeClass": "Burglary from Motor Vehicle",
+        "dateTime": "2025-12-05 08:58:06.000",
+        "locationType": "RESIDENCE/HOME"
+      },
+      "generated": {
+        "headline": "Burglary from Vehicle Reported in Arrowhead Circle Area",
+        "brief": "A burglary from a motor vehicle was reported on Friday morning in the Arrowhead Circle area of Jupiter, according to incident reports. The incident occurred around 8:58 a.m. at a residence on the 100 block of Arrowhead Circle. No suspects have been identified or arrested at this time. Residents are advised to ensure their vehicles are locked and valuables are removed or hidden from sight to prevent theft. Jupiter Police are investigating the incident and urge anyone with information to contact them.",
+        "social_posts": {
+          "twitter": "Burglary from a vehicle reported in Arrowhead Circle, Jupiter on Friday morning. No suspects yet. #JupiterFL",
+          "facebook": "A vehicle burglary occurred Friday morning in the Arrowhead Circle area. Jupiter Police are investigating. Residents should secure their vehicles and report any suspicious activity.",
+          "nextdoor": "Heads up, neighbors! A car was broken into on Arrowhead Circle Friday morning. Please remember to lock your vehicles and keep valuables out of sight. Let's stay safe and look out for each other."
+        },
+        "severity": "medium",
+        "tags": [
+          "crime",
+          "burglary",
+          "theft",
+          "vehicle",
+          "Jupiter"
+        ]
+      }
+    },
+    {
+      "incident": {
+        "id": "EVE5769665341159465423:3531204027",
+        "referenceId": "25004241",
+        "crime": "THEFT-GRAND OF AUTO",
+        "crimeClass": "Motor Vehicle Theft",
+        "dateTime": "2025-12-05 00:30:00.000",
+        "locationType": "RESIDENCE/HOME"
+      },
+      "generated": {
+        "headline": "Grand Theft Auto Reported in Arrowhead Circle, Jupiter",
+        "brief": "A vehicle was reported stolen from a residence in the 100 block of Arrowhead Circle in Jupiter early Friday morning. The incident occurred around 12:30 a.m., according to Jupiter Police. Authorities have not yet identified any suspects in connection with the theft. Residents are advised to ensure their vehicles are locked and parked in well-lit areas to deter potential thefts. Anyone with information about this incident is encouraged to contact the Jupiter Police Department.",
+        "social_posts": {
+          "twitter": "A car was stolen from a home on Arrowhead Cir in #JupiterFL early Friday. Police are investigating. Residents should lock their vehicles and report suspicious activity.",
+          "facebook": "Jupiter Police are investigating a vehicle theft from a residence on Arrowhead Circle that occurred early Friday morning. If you have any information, please contact the police department. Remember to lock your cars and park in well-lit areas.",
+          "nextdoor": "Heads up, neighbors! A car was stolen from Arrowhead Circle early Friday morning. Keep an eye out and ensure your vehicles are secured. Let's stay vigilant and report any suspicious activity to the Jupiter Police."
+        },
+        "severity": "medium",
+        "tags": [
+          "crime",
+          "theft",
+          "auto theft",
+          "Jupiter"
+        ]
+      }
+    }
+  ]
+}

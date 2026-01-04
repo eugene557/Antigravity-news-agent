@@ -1,0 +1,163 @@
+{
+    "departments": [
+        {
+            "id": "town-council",
+            "name": "Town Council",
+            "viewId": "229",
+            "boardMembers": [
+                {
+                    "name": "Jim Kuretski",
+                    "role": "Mayor"
+                },
+                {
+                    "name": "Ronnie Doane",
+                    "role": "Vice Mayor"
+                },
+                {
+                    "name": "Cheryl Schneider",
+                    "role": "Council Member"
+                },
+                {
+                    "name": "Cameron May",
+                    "role": "Council Member"
+                },
+                {
+                    "name": "Malise Sundstrom",
+                    "role": "Council Member"
+                }
+            ]
+        },
+        {
+            "id": "building",
+            "name": "Building",
+            "viewId": "TBD",
+            "boardMembers": []
+        },
+        {
+            "id": "business-community-liaison",
+            "name": "Business Community Liaison",
+            "viewId": "TBD",
+            "boardMembers": []
+        },
+        {
+            "id": "business-tax-receipts",
+            "name": "Business Tax Receipts",
+            "viewId": "TBD",
+            "boardMembers": []
+        },
+        {
+            "id": "code-compliance",
+            "name": "Code Compliance",
+            "viewId": "TBD",
+            "boardMembers": []
+        },
+        {
+            "id": "community-redevelopment-agency",
+            "name": "Community Redevelopment Agency",
+            "viewId": "TBD",
+            "boardMembers": []
+        },
+        {
+            "id": "community-relations",
+            "name": "Community Relations",
+            "viewId": "TBD",
+            "boardMembers": []
+        },
+        {
+            "id": "engineering",
+            "name": "Engineering",
+            "viewId": "TBD",
+            "boardMembers": []
+        },
+        {
+            "id": "finance",
+            "name": "Finance",
+            "viewId": "TBD",
+            "boardMembers": []
+        },
+        {
+            "id": "fire-rescue",
+            "name": "Fire Rescue",
+            "viewId": "TBD",
+            "boardMembers": []
+        },
+        {
+            "id": "history",
+            "name": "History",
+            "viewId": "TBD",
+            "boardMembers": []
+        },
+        {
+            "id": "human-resources",
+            "name": "Human Resources",
+            "viewId": "TBD",
+            "boardMembers": []
+        },
+        {
+            "id": "information-systems",
+            "name": "Information Systems",
+            "viewId": "TBD",
+            "boardMembers": []
+        },
+        {
+            "id": "maps-gis",
+            "name": "Maps & GIS",
+            "viewId": "TBD",
+            "boardMembers": []
+        },
+        {
+            "id": "natural-resources",
+            "name": "Natural Resources",
+            "viewId": "TBD",
+            "boardMembers": []
+        },
+        {
+            "id": "neighborhood-services",
+            "name": "Neighborhood Services",
+            "viewId": "TBD",
+            "boardMembers": []
+        },
+        {
+            "id": "office-of-town-manager",
+            "name": "Office of the Town Manager",
+            "viewId": "TBD",
+            "boardMembers": []
+        },
+        {
+            "id": "parks-and-recreation",
+            "name": "Parks and Recreation",
+            "viewId": "TBD",
+            "boardMembers": []
+        },
+        {
+            "id": "planning-zoning",
+            "name": "Planning & Zoning",
+            "viewId": "419",
+            "boardMembers": []
+        },
+        {
+            "id": "police",
+            "name": "Police",
+            "viewId": "TBD",
+            "boardMembers": []
+        },
+        {
+            "id": "public-works",
+            "name": "Public Works",
+            "viewId": "TBD",
+            "boardMembers": []
+        },
+        {
+            "id": "town-clerk",
+            "name": "Town Clerk",
+            "viewId": "TBD",
+            "boardMembers": []
+        },
+        {
+            "id": "water-stormwater-utilities",
+            "name": "Water & Stormwater Utilities",
+            "viewId": "TBD",
+            "boardMembers": []
+        }
+    ]
+}

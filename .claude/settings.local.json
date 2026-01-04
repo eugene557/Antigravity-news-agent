@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node:*)",
+      "Bash(npm create:*)",
+      "Bash(npm install:*)",
+      "Bash(curl:*)",
+      "Bash(timeout 30 node:*)",
+      "Bash(DEPARTMENT_ID=planning-board node agents/town-meeting/scrape.js:*)",
+      "Bash(cat:*)",
+      "Bash(DEPARTMENT_ID=planning-board node scripts/fetch_latest_meeting.js:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(lsof:*)",
+      "Bash(python3:*)",
+      "Bash(npm run build:*)",
+      "Bash(open http://localhost:5173)",
+      "Bash(FAST_MODE=true node scripts/swagit_downloader.js:*)",
+      "Bash(xargs:*)",
+      "Bash(pkill:*)"
+    ]
+  }
+}

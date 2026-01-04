@@ -1,0 +1,163 @@
+[
+  {
+    "url": "https://communitycrimemap.com/assets/config/environment.json",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://communitycrimemap.com/",
+      "accept-language": "en-GB,en;q=0.9",
+      "accept": "application/json, text/plain, */*",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "url": "https://communitycrimemap.com/api/v1/auth/newToken",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://communitycrimemap.com/",
+      "accept-language": "en-GB,en;q=0.9",
+      "accept": "application/json, text/plain, */*",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "url": "https://communitycrimemap.com/api/v1/search/map-layers",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIsImp0aSI6Im5ZM3FkdXdER0ViclJzV0FnbDNXUm1MWXhtcTVaM2NoekJhbFB2cHNtUUlidzliZUlzbXVEZ2JJQ0VUZitkcnViUVZmdmZaemhYWXVvY2hjUzVEMjZ3PT0ifQ.eyJpc3MiOiIxOWNhNWM1ZDhlODFkOWM0N2VhYjRiNzI2Njg2NmIzOSIsImF1ZCI6IjNjNzc0YTgxYWM2MTlkMjQzNjFkZWFmNDNjYjFkZDdiIiwic3ViIjoiYTI2NmQ1ZjdiNzlhMjdlNGRlNjEyMmYyNTFjZWQyZTkiLCJqdGkiOiJuWTNxZHV3REdFYnJSc1dBZ2wzV1JtTFl4bXE1WjNjaHpCYWxQdnBzbVFJYnc5YmVJc211RGdiSUNFVGYrZHJ1YlFWZnZmWnpoWFl1b2NoY1M1RDI2dz09IiwiaWF0IjowLCJuYmYiOjAsImV4cCI6MTc2NzE5MjgxOCwidWlkIjoiWWEwcTRuV3hjbnpGVFFQVTlrWk8zV1dBZjJKK1ZwV01scDZ6QzJFbmtIODlcL2FaSEFRXC9mQmpxUjlFbjE5NndGb0RhdTN5enFuXC9ZZXZVT3hocGxGcFE9PSJ9.wOEiYFKjTOs2sMV6Zbf5u3e1TXbnklmDXoi6zJgUqWc",
+      "referer": "https://communitycrimemap.com/",
+      "accept-language": "en-GB,en;q=0.9",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0",
+      "request-id": "|062ce4985bfb4b798ceeda9ccae29431.e92fcb2ebf8d4872",
+      "traceparent": "00-062ce4985bfb4b798ceeda9ccae29431-e92fcb2ebf8d4872-01",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36",
+      "accept": "application/json, text/plain, */*",
+      "cookie": "Authorization=Bearer%20eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIsImp0aSI6Im5ZM3FkdXdER0ViclJzV0FnbDNXUm1MWXhtcTVaM2NoekJhbFB2cHNtUUlidzliZUlzbXVEZ2JJQ0VUZitkcnViUVZmdmZaemhYWXVvY2hjUzVEMjZ3PT0ifQ.eyJpc3MiOiIxOWNhNWM1ZDhlODFkOWM0N2VhYjRiNzI2Njg2NmIzOSIsImF1ZCI6IjNjNzc0YTgxYWM2MTlkMjQzNjFkZWFmNDNjYjFkZDdiIiwic3ViIjoiYTI2NmQ1ZjdiNzlhMjdlNGRlNjEyMmYyNTFjZWQyZTkiLCJqdGkiOiJuWTNxZHV3REdFYnJSc1dBZ2wzV1JtTFl4bXE1WjNjaHpCYWxQdnBzbVFJYnc5YmVJc211RGdiSUNFVGYrZHJ1YlFWZnZmWnpoWFl1b2NoY1M1RDI2dz09IiwiaWF0IjowLCJuYmYiOjAsImV4cCI6MTc2NzE5MjgxOCwidWlkIjoiWWEwcTRuV3hjbnpGVFFQVTlrWk8zV1dBZjJKK1ZwV01scDZ6QzJFbmtIODlcL2FaSEFRXC9mQmpxUjlFbjE5NndGb0RhdTN5enFuXC9ZZXZVT3hocGxGcFE9PSJ9.wOEiYFKjTOs2sMV6Zbf5u3e1TXbnklmDXoi6zJgUqWc; ai_user=sKWxdl3Q9dWq90ZfAu20Xx|2025-12-31T11:53:38.202Z; ai_session=EcBGUSt6kfRrGMcfQzLIfP|1767182018221|1767182018221"
+    }
+  },
+  {
+    "url": "https://communitycrimemap.com/api/v1/search/map-layers",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIsImp0aSI6Im5ZM3FkdXdER0ViclJzV0FnbDNXUm1MWXhtcTVaM2NoekJhbFB2cHNtUUlidzliZUlzbXVEZ2JJQ0VUZitkcnViUVZmdmZaemhYWXVvY2hjUzVEMjZ3PT0ifQ.eyJpc3MiOiIxOWNhNWM1ZDhlODFkOWM0N2VhYjRiNzI2Njg2NmIzOSIsImF1ZCI6IjNjNzc0YTgxYWM2MTlkMjQzNjFkZWFmNDNjYjFkZDdiIiwic3ViIjoiYTI2NmQ1ZjdiNzlhMjdlNGRlNjEyMmYyNTFjZWQyZTkiLCJqdGkiOiJuWTNxZHV3REdFYnJSc1dBZ2wzV1JtTFl4bXE1WjNjaHpCYWxQdnBzbVFJYnc5YmVJc211RGdiSUNFVGYrZHJ1YlFWZnZmWnpoWFl1b2NoY1M1RDI2dz09IiwiaWF0IjowLCJuYmYiOjAsImV4cCI6MTc2NzE5MjgxOCwidWlkIjoiWWEwcTRuV3hjbnpGVFFQVTlrWk8zV1dBZjJKK1ZwV01scDZ6QzJFbmtIODlcL2FaSEFRXC9mQmpxUjlFbjE5NndGb0RhdTN5enFuXC9ZZXZVT3hocGxGcFE9PSJ9.wOEiYFKjTOs2sMV6Zbf5u3e1TXbnklmDXoi6zJgUqWc",
+      "referer": "https://communitycrimemap.com/",
+      "accept-language": "en-GB,en;q=0.9",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0",
+      "request-id": "|062ce4985bfb4b798ceeda9ccae29431.8b32095ad97345d3",
+      "traceparent": "00-062ce4985bfb4b798ceeda9ccae29431-8b32095ad97345d3-01",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36",
+      "accept": "application/json, text/plain, */*",
+      "cookie": "Authorization=Bearer%20eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIsImp0aSI6Im5ZM3FkdXdER0ViclJzV0FnbDNXUm1MWXhtcTVaM2NoekJhbFB2cHNtUUlidzliZUlzbXVEZ2JJQ0VUZitkcnViUVZmdmZaemhYWXVvY2hjUzVEMjZ3PT0ifQ.eyJpc3MiOiIxOWNhNWM1ZDhlODFkOWM0N2VhYjRiNzI2Njg2NmIzOSIsImF1ZCI6IjNjNzc0YTgxYWM2MTlkMjQzNjFkZWFmNDNjYjFkZDdiIiwic3ViIjoiYTI2NmQ1ZjdiNzlhMjdlNGRlNjEyMmYyNTFjZWQyZTkiLCJqdGkiOiJuWTNxZHV3REdFYnJSc1dBZ2wzV1JtTFl4bXE1WjNjaHpCYWxQdnBzbVFJYnc5YmVJc211RGdiSUNFVGYrZHJ1YlFWZnZmWnpoWFl1b2NoY1M1RDI2dz09IiwiaWF0IjowLCJuYmYiOjAsImV4cCI6MTc2NzE5MjgxOCwidWlkIjoiWWEwcTRuV3hjbnpGVFFQVTlrWk8zV1dBZjJKK1ZwV01scDZ6QzJFbmtIODlcL2FaSEFRXC9mQmpxUjlFbjE5NndGb0RhdTN5enFuXC9ZZXZVT3hocGxGcFE9PSJ9.wOEiYFKjTOs2sMV6Zbf5u3e1TXbnklmDXoi6zJgUqWc; ai_user=sKWxdl3Q9dWq90ZfAu20Xx|2025-12-31T11:53:38.202Z; ai_session=EcBGUSt6kfRrGMcfQzLIfP|1767182018221|1767182018221"
+    }
+  },
+  {
+    "url": "https://maps.googleapis.com/maps/api/mapsjs/gen_204?csp_test=true",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://communitycrimemap.com/",
+      "accept-language": "en-GB,en;q=0.9",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36",
+      "sec-ch-ua-mobile": "?0",
+      "accept": "*/*",
+      "origin": "https://communitycrimemap.com"
+    }
+  },
+  {
+    "url": "https://maps.googleapis.com/$rpc/google.internal.maps.mapsjs.v1.MapsJsInternalService/GetViewportInfo",
+    "method": "POST",
+    "headers": {
+      "x-goog-maps-api-signature": "62733",
+      "sec-ch-ua-platform": "\"macOS\"",
+      "x-user-agent": "grpc-web-javascript/0.1",
+      "referer": "https://communitycrimemap.com/",
+      "x-goog-gmp-client-signals": "CAIqCDMuNjIuMTNlWg4SDAjDndTKBhCA48eEAQ==",
+      "accept-language": "en-GB,en;q=0.9",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-goog-api-key": "AIzaSyD8QCs7PrBqzqyJCBktzgYVBJ9YHSq5-iw",
+      "x-goog-maps-api-salt": "tRWvri4rh",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36",
+      "content-type": "application/json+protobuf",
+      "x-goog-maps-session-id": "76408C81-E3A5-4EFC-8199-909F2B90C46E",
+      "accept": "*/*",
+      "origin": "https://communitycrimemap.com"
+    },
+    "postData": "[[[-13.227707730687959,154.97053017433666],[89.28702718214372,9.920780798015969]],4,null,\"en-GB\",0,\"m@761000000\",0,0,null,null,null,1,\"https://communitycrimemap.com/\",1,null,null,\"90C114BA-BA6A-4DD4-912A-1035B89AE381\"]"
+  },
+  {
+    "url": "https://communitycrimemap.com/api/v1/search/coverage?east=-0.7985464016100297&north=71.74050168400697&south=8.909786610384892&west=-169.37276515161003&agencyPins=true",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIsImp0aSI6Im5ZM3FkdXdER0ViclJzV0FnbDNXUm1MWXhtcTVaM2NoekJhbFB2cHNtUUlidzliZUlzbXVEZ2JJQ0VUZitkcnViUVZmdmZaemhYWXVvY2hjUzVEMjZ3PT0ifQ.eyJpc3MiOiIxOWNhNWM1ZDhlODFkOWM0N2VhYjRiNzI2Njg2NmIzOSIsImF1ZCI6IjNjNzc0YTgxYWM2MTlkMjQzNjFkZWFmNDNjYjFkZDdiIiwic3ViIjoiYTI2NmQ1ZjdiNzlhMjdlNGRlNjEyMmYyNTFjZWQyZTkiLCJqdGkiOiJuWTNxZHV3REdFYnJSc1dBZ2wzV1JtTFl4bXE1WjNjaHpCYWxQdnBzbVFJYnc5YmVJc211RGdiSUNFVGYrZHJ1YlFWZnZmWnpoWFl1b2NoY1M1RDI2dz09IiwiaWF0IjowLCJuYmYiOjAsImV4cCI6MTc2NzE5MjgxOCwidWlkIjoiWWEwcTRuV3hjbnpGVFFQVTlrWk8zV1dBZjJKK1ZwV01scDZ6QzJFbmtIODlcL2FaSEFRXC9mQmpxUjlFbjE5NndGb0RhdTN5enFuXC9ZZXZVT3hocGxGcFE9PSJ9.wOEiYFKjTOs2sMV6Zbf5u3e1TXbnklmDXoi6zJgUqWc",
+      "referer": "https://communitycrimemap.com/",
+      "accept-language": "en-GB,en;q=0.9",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0",
+      "request-id": "|062ce4985bfb4b798ceeda9ccae29431.079b7557ef594fb1",
+      "traceparent": "00-062ce4985bfb4b798ceeda9ccae29431-079b7557ef594fb1-01",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36",
+      "accept": "application/json, text/plain, */*",
+      "cookie": "Authorization=Bearer%20eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIsImp0aSI6Im5ZM3FkdXdER0ViclJzV0FnbDNXUm1MWXhtcTVaM2NoekJhbFB2cHNtUUlidzliZUlzbXVEZ2JJQ0VUZitkcnViUVZmdmZaemhYWXVvY2hjUzVEMjZ3PT0ifQ.eyJpc3MiOiIxOWNhNWM1ZDhlODFkOWM0N2VhYjRiNzI2Njg2NmIzOSIsImF1ZCI6IjNjNzc0YTgxYWM2MTlkMjQzNjFkZWFmNDNjYjFkZDdiIiwic3ViIjoiYTI2NmQ1ZjdiNzlhMjdlNGRlNjEyMmYyNTFjZWQyZTkiLCJqdGkiOiJuWTNxZHV3REdFYnJSc1dBZ2wzV1JtTFl4bXE1WjNjaHpCYWxQdnBzbVFJYnc5YmVJc211RGdiSUNFVGYrZHJ1YlFWZnZmWnpoWFl1b2NoY1M1RDI2dz09IiwiaWF0IjowLCJuYmYiOjAsImV4cCI6MTc2NzE5MjgxOCwidWlkIjoiWWEwcTRuV3hjbnpGVFFQVTlrWk8zV1dBZjJKK1ZwV01scDZ6QzJFbmtIODlcL2FaSEFRXC9mQmpxUjlFbjE5NndGb0RhdTN5enFuXC9ZZXZVT3hocGxGcFE9PSJ9.wOEiYFKjTOs2sMV6Zbf5u3e1TXbnklmDXoi6zJgUqWc; ai_user=sKWxdl3Q9dWq90ZfAu20Xx|2025-12-31T11:53:38.202Z; ai_session=EcBGUSt6kfRrGMcfQzLIfP|1767182018221|1767182018221"
+    }
+  },
+  {
+    "url": "https://usgovvirginia-1.in.applicationinsights.azure.us/v2/track",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://communitycrimemap.com/",
+      "accept-language": "en-GB,en;q=0.9",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "content-type": "application/json",
+      "sec-ch-ua-mobile": "?0",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36",
+      "accept": "*/*",
+      "origin": "https://communitycrimemap.com"
+    },
+    "postData": "[{\"time\":\"2025-12-31T11:53:38.207Z\",\"iKey\":\"f0b70f38-910a-f021-8a64-ce245db0e19b\",\"name\":\"Microsoft.ApplicationInsights.f0b70f38910af0218a64ce245db0e19b.RemoteDependency\",\"tags\":{\"ai.user.id\":\"sKWxdl3Q9dWq90ZfAu20Xx\",\"ai.session.id\":\"EcBGUSt6kfRrGMcfQzLIfP\",\"ai.device.id\":\"browser\",\"ai.device.type\":\"Browser\",\"ai.operation.name\":\"/\",\"ai.operation.id\":\"49e8d7e4febc417bb8eb196f2c4ef810\",\"ai.internal.sdkVersion\":\"javascript:3.3.0\"},\"data\":{\"baseType\":\"RemoteDependencyData\",\"baseData\":{\"id\":\"|49e8d7e4febc417bb8eb196f2c4ef810.5b8b1776a1ca422c.\",\"ver\":2,\"name\":\"GET https://js.monitor.azure.com/scripts/b/ai.config.1.cfg.json\",\"resultCode\":\"0\",\"duration\":\"00:00:00.013\",\"success\":false,\"data\":\"GET https://js.monitor.azure.com/scripts/b/ai.config.1.cfg.json\",\"target\":\"js.monitor.azure.com\",\"type\":\"Fetch\",\"properties\":{\"HttpMethod\":\"GET\"},\"measurements\":{}}}},{\"time\":\"2025-12-31T11:53:38.592Z\",\"iKey\":\"f0b70f38-910a-f021-8a64-ce245db0e19b\",\"name\":\"Microsoft.ApplicationInsights.f0b70f38910af0218a64ce245db0e19b.RemoteDependency\",\"tags\":{\"ai.user.id\":\"sKWxdl3Q9dWq90ZfAu20Xx\",\"ai.session.id\":\"EcBGUSt6kfRrGMcfQzLIfP\",\"ai.device.id\":\"browser\",\"ai.device.type\":\"Browser\",\"ai.operation.name\":\"/\",\"ai.operation.id\":\"062ce4985bfb4b798ceeda9ccae29431\",\"ai.internal.sdkVersion\":\"javascript:3.3.0\"},\"data\":{\"baseType\":\"RemoteDependencyData\",\"baseData\":{\"id\":\"|062ce4985bfb4b798ceeda9ccae29431.e92fcb2ebf8d4872.\",\"ver\":2,\"name\":\"GET /api/v1/search/map-layers\",\"resultCode\":\"200\",\"duration\":\"00:00:00.318\",\"success\":true,\"data\":\"GET /api/v1/search/map-layers\",\"target\":\"communitycrimemap.com\",\"type\":\"Ajax\",\"properties\":{\"HttpMethod\":\"GET\"},\"measurements\":{}}}},{\"time\":\"2025-12-31T11:53:37.654Z\",\"iKey\":\"f0b70f38-910a-f021-8a64-ce245db0e19b\",\"name\":\"Microsoft.ApplicationInsights.f0b70f38910af0218a64ce245db0e19b.Pageview\",\"tags\":{\"ai.user.id\":\"sKWxdl3Q9dWq90ZfAu20Xx\",\"ai.session.id\":\"EcBGUSt6kfRrGMcfQzLIfP\",\"ai.device.id\":\"browser\",\"ai.device.type\":\"Browser\",\"ai.operation.name\":\"/\",\"ai.operation.id\":\"062ce4985bfb4b798ceeda9ccae29431\",\"ai.internal.sdkVersion\":\"javascript:3.3.0\",\"ai.internal.snippet\":\"-\"},\"data\":{\"baseType\":\"PageviewData\",\"baseData\":{\"ver\":2,\"name\":\"LexisNexis® Community Crime Map\",\"url\":\"https://communitycrimemap.com/\",\"duration\":\"00:00:00.000\",\"properties\":{\"refUri\":\"https://communitycrimemap.com/\"},\"measurements\":{\"duration\":0},\"id\":\"062ce4985bfb4b798ceeda9ccae29431\"}}}]"
+  },
+  {
+    "url": "https://usgovvirginia-1.in.applicationinsights.azure.us/v2/track",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://communitycrimemap.com/",
+      "accept-language": "en-GB,en;q=0.9",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "content-type": "application/json",
+      "sec-ch-ua-mobile": "?0",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36",
+      "accept": "*/*",
+      "origin": "https://communitycrimemap.com"
+    },
+    "postData": "[{\"time\":\"2025-12-31T11:53:39.167Z\",\"iKey\":\"f0b70f38-910a-f021-8a64-ce245db0e19b\",\"name\":\"Microsoft.ApplicationInsights.f0b70f38910af0218a64ce245db0e19b.PageviewPerformance\",\"tags\":{\"ai.user.id\":\"sKWxdl3Q9dWq90ZfAu20Xx\",\"ai.session.id\":\"EcBGUSt6kfRrGMcfQzLIfP\",\"ai.device.id\":\"browser\",\"ai.device.type\":\"Browser\",\"ai.operation.name\":\"/\",\"ai.operation.id\":\"062ce4985bfb4b798ceeda9ccae29431\",\"ai.internal.sdkVersion\":\"javascript:3.3.0\"},\"data\":{\"baseType\":\"PageviewPerformanceData\",\"baseData\":{\"ver\":2,\"name\":\"LexisNexis® Community Crime Map\",\"url\":\"https://communitycrimemap.com/\",\"duration\":\"00:00:01.665\",\"perfTotal\":\"00:00:01.665\",\"networkConnect\":\"00:00:00.592\",\"sentRequest\":\"00:00:00.264\",\"receivedResponse\":\"00:00:00.002\",\"domProcessing\":\"00:00:00.807\",\"properties\":{},\"measurements\":{\"duration\":0}}}}]"
+  },
+  {
+    "url": "https://usgovvirginia-1.in.applicationinsights.azure.us/v2/track",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"macOS\"",
+      "referer": "https://communitycrimemap.com/",
+      "accept-language": "en-GB,en;q=0.9",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "content-type": "application/json",
+      "sec-ch-ua-mobile": "?0",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/143.0.0.0 Safari/537.36",
+      "accept": "*/*",
+      "origin": "https://communitycrimemap.com"
+    },
+    "postData": "[{\"time\":\"2025-12-31T11:53:38.624Z\",\"iKey\":\"f0b70f38-910a-f021-8a64-ce245db0e19b\",\"name\":\"Microsoft.ApplicationInsights.f0b70f38910af0218a64ce245db0e19b.RemoteDependency\",\"tags\":{\"ai.user.id\":\"sKWxdl3Q9dWq90ZfAu20Xx\",\"ai.session.id\":\"EcBGUSt6kfRrGMcfQzLIfP\",\"ai.device.id\":\"browser\",\"ai.device.type\":\"Browser\",\"ai.operation.name\":\"/\",\"ai.operation.id\":\"062ce4985bfb4b798ceeda9ccae29431\",\"ai.internal.sdkVersion\":\"javascript:3.3.0\"},\"data\":{\"baseType\":\"RemoteDependencyData\",\"baseData\":{\"id\":\"|062ce4985bfb4b798ceeda9ccae29431.8b32095ad97345d3.\",\"ver\":2,\"name\":\"GET /api/v1/search/map-layers\",\"resultCode\":\"200\",\"duration\":\"00:00:00.545\",\"success\":true,\"data\":\"GET /api/v1/search/map-layers\",\"target\":\"communitycrimemap.com\",\"type\":\"Ajax\",\"properties\":{\"HttpMethod\":\"GET\"},\"measurements\":{}}}},{\"time\":\"2025-12-31T11:53:38.868Z\",\"iKey\":\"f0b70f38-910a-f021-8a64-ce245db0e19b\",\"name\":\"Microsoft.ApplicationInsights.f0b70f38910af0218a64ce245db0e19b.RemoteDependency\",\"tags\":{\"ai.user.id\":\"sKWxdl3Q9dWq90ZfAu20Xx\",\"ai.session.id\":\"EcBGUSt6kfRrGMcfQzLIfP\",\"ai.device.id\":\"browser\",\"ai.device.type\":\"Browser\",\"ai.operation.name\":\"/\",\"ai.operation.id\":\"062ce4985bfb4b798ceeda9ccae29431\",\"ai.internal.sdkVersion\":\"javascript:3.3.0\"},\"data\":{\"baseType\":\"RemoteDependencyData\",\"baseData\":{\"id\":\"|062ce4985bfb4b798ceeda9ccae29431.df88c71e162f45d5.\",\"ver\":2,\"name\":\"GET https://maps.googleapis.com/maps/api/mapsjs/gen_204?csp_test=true\",\"resultCode\":\"200\",\"duration\":\"00:00:00.462\",\"success\":true,\"data\":\"GET https://maps.googleapis.com/maps/api/mapsjs/gen_204?csp_test=true\",\"target\":\"maps.googleapis.com\",\"type\":\"Ajax\",\"properties\":{\"HttpMethod\":\"GET\"},\"measurements\":{}}}},{\"time\":\"2025-12-31T11:53:39.371Z\",\"iKey\":\"f0b70f38-910a-f021-8a64-ce245db0e19b\",\"name\":\"Microsoft.ApplicationInsights.f0b70f38910af0218a64ce245db0e19b.RemoteDependency\",\"tags\":{\"ai.user.id\":\"sKWxdl3Q9dWq90ZfAu20Xx\",\"ai.session.id\":\"EcBGUSt6kfRrGMcfQzLIfP\",\"ai.device.id\":\"browser\",\"ai.device.type\":\"Browser\",\"ai.operation.name\":\"/\",\"ai.operation.id\":\"062ce4985bfb4b798ceeda9ccae29431\",\"ai.internal.sdkVersion\":\"javascript:3.3.0\"},\"data\":{\"baseType\":\"RemoteDependencyData\",\"baseData\":{\"id\":\"|062ce4985bfb4b798ceeda9ccae29431.1142a7e1198c4d7e.\",\"ver\":2,\"name\":\"POST https://maps.googleapis.com/$rpc/google.internal.maps.mapsjs.v1.MapsJsInternalService/GetViewportInfo\",\"resultCode\":\"200\",\"duration\":\"00:00:00.500\",\"success\":true,\"data\":\"POST https://maps.googleapis.com/$rpc/google.internal.maps.mapsjs.v1.MapsJsInternalService/GetViewportInfo\",\"target\":\"maps.googleapis.com\",\"type\":\"Ajax\",\"properties\":{\"HttpMethod\":\"POST\"},\"measurements\":{}}}},{\"time\":\"2025-12-31T11:53:40.286Z\",\"iKey\":\"f0b70f38-910a-f021-8a64-ce245db0e19b\",\"name\":\"Microsoft.ApplicationInsights.f0b70f38910af0218a64ce245db0e19b.RemoteDependency\",\"tags\":{\"ai.user.id\":\"sKWxdl3Q9dWq90ZfAu20Xx\",\"ai.session.id\":\"EcBGUSt6kfRrGMcfQzLIfP\",\"ai.device.id\":\"browser\",\"ai.device.type\":\"Browser\",\"ai.operation.name\":\"/\",\"ai.operation.id\":\"062ce4985bfb4b798ceeda9ccae29431\",\"ai.internal.sdkVersion\":\"javascript:3.3.0\"},\"data\":{\"baseType\":\"RemoteDependencyData\",\"baseData\":{\"id\":\"|062ce4985bfb4b798ceeda9ccae29431.079b7557ef594fb1.\",\"ver\":2,\"name\":\"GET /api/v1/search/coverage?east=-0.7985464016100297&north=71.74050168400697&south=8.909786610384892&west=-169.37276515161003&agencyPins=true\",\"resultCode\":\"200\",\"duration\":\"00:00:01.627\",\"success\":true,\"data\":\"GET /api/v1/search/coverage?east=-0.7985464016100297&north=71.74050168400697&south=8.909786610384892&west=-169.37276515161003&agencyPins=true\",\"target\":\"communitycrimemap.com\",\"type\":\"Ajax\",\"properties\":{\"HttpMethod\":\"GET\"},\"measurements\":{}}}}]"
+  }
+]

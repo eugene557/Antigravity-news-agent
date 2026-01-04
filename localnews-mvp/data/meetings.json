@@ -1,0 +1,75 @@
+[
+  {
+    "id": "362440",
+    "videoId": "362440",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2025-12-02",
+    "status": "processed",
+    "description": "Town Council Regular Meeting - December 2nd, 2025",
+    "processedAt": "2026-01-03T21:41:36.190Z",
+    "ideasCount": 3
+  },
+  {
+    "id": "363139",
+    "videoId": "363139",
+    "departmentId": "planning-zoning",
+    "type": "Planning and Zoning Commission Meeting",
+    "date": "2025-12-09",
+    "status": "processed",
+    "description": "Planning and Zoning Commission Meeting - December 9th, 2025",
+    "processedAt": "2026-01-03T22:23:16.685Z",
+    "ideasCount": 3
+  },
+  {
+    "id": "364781",
+    "videoId": "364781",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2025-12-16",
+    "status": "processed",
+    "description": "Town Council Regular Meeting - December 16th, 2025",
+    "processedAt": "2026-01-03T21:41:34.692Z",
+    "ideasCount": 3
+  },
+  {
+    "id": "cal_22383",
+    "calendarEventId": "22383",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-01-06",
+    "status": "upcoming",
+    "source": "jupiter-calendar",
+    "syncedAt": "2026-01-03T19:46:12.559Z"
+  },
+  {
+    "id": "cal_22115",
+    "calendarEventId": "22115",
+    "departmentId": "art-board",
+    "type": "Art Committee Meeting",
+    "date": "2026-01-12",
+    "status": "upcoming",
+    "source": "jupiter-calendar",
+    "syncedAt": "2026-01-03T19:46:12.559Z"
+  },
+  {
+    "id": "cal_21288",
+    "calendarEventId": "21288",
+    "departmentId": "planning-zoning",
+    "type": "Planning and Zoning Commission Meeting",
+    "date": "2026-01-13",
+    "status": "upcoming",
+    "source": "jupiter-calendar",
+    "syncedAt": "2026-01-03T19:46:12.559Z"
+  },
+  {
+    "id": "cal_22395",
+    "calendarEventId": "22395",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-01-20",
+    "status": "upcoming",
+    "source": "jupiter-calendar",
+    "syncedAt": "2026-01-03T19:46:12.559Z"
+  }
+]

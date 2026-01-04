@@ -1,75 +1,167 @@
 {
   "metadata": {
     "videoId": "364781",
-    "generatedAt": "2026-01-03T22:40:53.714Z"
+    "generatedAt": "2026-01-04T08:56:29.343Z"
   },
   "ideas": [
     {
       "id": "1",
-      "event": "Jupiter Fire Rescue Department Update and Purchase Approval",
-      "title": "Jupiter Fire Rescue Prepares for 2026 Launch",
-      "summary": "The Jupiter Fire Rescue Department presented an update to the town council, highlighting the progress made towards their 2026 operational launch. They have completed hiring, construction of new fire stations, and are acquiring necessary equipment, including self-contained breathing apparatus. The council approved the purchase of the SCBAs, marking a significant step toward ensuring the department is fully equipped.",
+      "event": "Jupiter Fire Rescue Department Update",
+      "title": "Jupiter Fire Rescue's Progress Towards 2026 Launch",
+      "summary": "The Jupiter Fire Rescue Department is on track to begin providing fire and emergency medical services by October 2026, with hiring complete and new equipment and facilities underway.",
       "angles": [
         {
-          "name": "Community Safety Initiative",
-          "description": "Focus on how the new Jupiter Fire Rescue Department will enhance safety and emergency response times for local residents.",
-          "prompt_hint": "Explore how the new fire department will improve community safety."
+          "name": "Community Impact",
+          "description": "Focus on how the new fire department will improve safety and response times for residents.",
+          "prompt_hint": "Highlight the benefits of local emergency services for community safety."
         },
         {
           "name": "Fiscal Responsibility",
-          "description": "Examine the financial aspects of setting up the new fire department, including budget allocations and cost-effectiveness of the equipment purchased.",
-          "prompt_hint": "Discuss the financial planning and budget implications of the new fire department setup."
+          "description": "Emphasize the project's adherence to budget and timeline.",
+          "prompt_hint": "Discuss the financial planning and efficiency of the project."
         },
         {
           "name": "Technological Advancements",
-          "description": "Highlight the cutting-edge technology being adopted by Jupiter Fire Rescue, such as the new SCBAs, and how it positions the department as a leader in fire safety.",
-          "prompt_hint": "Describe the new technologies being implemented and their benefits."
+          "description": "Detail the cutting-edge equipment and technology being implemented.",
+          "prompt_hint": "Explore the new technology and its benefits for emergency response."
         }
       ]
     },
     {
       "id": "2",
-      "event": "Temporary Fire Station Approval for Abacoa Area",
-      "title": "Jupiter Council Greenlights Temporary Fire Station in Abacoa",
-      "summary": "The town council approved plans for a temporary fire station at Abacoa Community Park to ensure continuous fire and emergency services during the transition phase. This temporary setup is necessary due to the upcoming transition of the existing Abacoa station to town ownership.",
+      "event": "Purchase of Self-Contained Breathing Apparatus for Fire Department",
+      "title": "Jupiter Invests in Cutting-Edge Safety Gear for Firefighters",
+      "summary": "The Town Council approved the purchase of state-of-the-art self-contained breathing apparatus (SCBA) for the Jupiter Fire Rescue Department, ensuring top safety standards for firefighters.",
       "angles": [
         {
-          "name": "Community Impact",
-          "description": "Analyze the impact of the temporary fire station on Abacoa residents, including concerns about traffic and parking.",
-          "prompt_hint": "Investigate how the temporary fire station will affect local residents and businesses."
+          "name": "Safety First",
+          "description": "Highlight the importance of safety gear in protecting firefighters.",
+          "prompt_hint": "Discuss how the new gear enhances firefighter safety."
         },
         {
-          "name": "Operational Transition",
-          "description": "Detail the operational logistics and planning involved in transitioning to the new fire department setup, and how the temporary station fits into this plan.",
-          "prompt_hint": "Outline the transition plan for the new fire department services."
+          "name": "Technological Edge",
+          "description": "Focus on the advanced features of the SCBA, such as noise-cancelling and Bluetooth.",
+          "prompt_hint": "Explore the technology behind the new SCBA equipment."
         },
         {
-          "name": "Neighborhood Engagement",
-          "description": "Explore how the fire department and town council are engaging with local communities to address concerns and keep residents informed.",
-          "prompt_hint": "Discuss the communication strategies with local communities regarding the fire station."
+          "name": "Budget Efficiency",
+          "description": "Explain the cost-effectiveness of the purchase through competitive contracts.",
+          "prompt_hint": "Discuss the financial strategy behind the purchase."
         }
       ]
     },
     {
       "id": "3",
-      "event": "Citizens Express Concerns Over Development and Public Access",
-      "title": "Jupiter Residents Voice Concerns Over Rapid Development and Loss of Public Spaces",
-      "summary": "During the town council meeting, several residents expressed concerns about the rapid development in Jupiter, particularly the lack of public boat ramps and the potential loss of a long-standing boat rental business due to rising rents and development pressures.",
+      "event": "Temporary Fire Station in Abacoa Community Park",
+      "title": "Plans for Temporary Fire Station in Abacoa Move Forward",
+      "summary": "A temporary fire station will be set up in Abacoa Community Park to ensure uninterrupted emergency services during the transition to Jupiter's new fire department.",
       "angles": [
         {
-          "name": "Preserving Public Spaces",
-          "description": "Focus on the community's desire to preserve and enhance public access to waterways and recreational areas.",
-          "prompt_hint": "Highlight community efforts to preserve public access to natural resources."
+          "name": "Community Preparedness",
+          "description": "Explain how the temporary station ensures continuous emergency coverage.",
+          "prompt_hint": "Highlight the need for uninterrupted emergency services during the transition."
         },
         {
-          "name": "Economic Impact on Local Businesses",
-          "description": "Discuss how rising costs and development are affecting local businesses, particularly those reliant on waterfront access.",
-          "prompt_hint": "Examine the economic challenges faced by local businesses due to development."
+          "name": "Traffic Management",
+          "description": "Discuss the strategies to manage traffic during school hours near the temporary station.",
+          "prompt_hint": "Focus on the impact on local traffic and mitigation strategies."
         },
         {
-          "name": "Historical Perspective",
-          "description": "Provide a historical context of Jupiter's development over the years and the community's response to changes.",
-          "prompt_hint": "Explore the historical development of Jupiter and community sentiments."
+          "name": "Future Planning",
+          "description": "Look at long-term plans for the fire station and community safety.",
+          "prompt_hint": "Discuss the transition plans and future infrastructure improvements."
+        }
+      ]
+    },
+    {
+      "id": "4",
+      "event": "Public Comment on Development and Public Access",
+      "title": "Residents Express Concerns Over Development and Loss of Public Access",
+      "summary": "During a public meeting, residents raised concerns about overdevelopment in Jupiter and the lack of public access to waterfront areas.",
+      "angles": [
+        {
+          "name": "Preserving Local Character",
+          "description": "Explore residents' concerns about maintaining Jupiter's charm amid development.",
+          "prompt_hint": "Discuss how new developments are impacting the local community's character."
+        },
+        {
+          "name": "Public Access to Waterways",
+          "description": "Focus on the call for more public docks and recreational spaces.",
+          "prompt_hint": "Examine the demand for public access to water and recreational areas."
+        },
+        {
+          "name": "Economic and Environmental Balance",
+          "description": "Discuss the balance between economic growth and environmental preservation.",
+          "prompt_hint": "Explore the challenges of balancing development with environmental stewardship."
+        }
+      ]
+    },
+    {
+      "id": "5",
+      "event": "Jupiter Inlet Boat Rentals Facing Closure",
+      "title": "Jupiter's Last Public Boat Rental Faces Uncertain Future",
+      "summary": "Jupiter Inlet Boat Rentals, the town's only public boat rental service, may close due to rising rent costs and lack of available dock space.",
+      "angles": [
+        {
+          "name": "Economic Impact",
+          "description": "Discuss the potential economic impact of losing a key recreational service.",
+          "prompt_hint": "Explore how the closure could affect local tourism and economy."
+        },
+        {
+          "name": "Preserving Local Businesses",
+          "description": "Focus on the challenges faced by small businesses in maintaining community services.",
+          "prompt_hint": "Highlight the struggles of small businesses in retaining crucial local services."
+        },
+        {
+          "name": "Public-Private Partnerships",
+          "description": "Explore opportunities for collaboration to save the business.",
+          "prompt_hint": "Examine potential solutions like public-private partnerships to keep the service alive."
+        }
+      ]
+    },
+    {
+      "id": "6",
+      "event": "Resolution for Affordable Town Dock and Marina",
+      "title": "Call for Affordable Public Dock and Marina Gains Momentum",
+      "summary": "Residents urged the town council to consider developing an affordable public dock and marina to ensure access to local waterways.",
+      "angles": [
+        {
+          "name": "Increasing Public Access",
+          "description": "Focus on the need for public infrastructure that enhances access to waterways.",
+          "prompt_hint": "Discuss the benefits of increased public access to water resources."
+        },
+        {
+          "name": "Community Engagement",
+          "description": "Highlight community involvement and advocacy for public amenities.",
+          "prompt_hint": "Explore how community voices are shaping local infrastructure plans."
+        },
+        {
+          "name": "Environmental Considerations",
+          "description": "Discuss the environmental implications of developing a public marina.",
+          "prompt_hint": "Examine the environmental impact of new marina developments."
+        }
+      ]
+    },
+    {
+      "id": "7",
+      "event": "Budget Amendment for Deep Well Injection Phase 2",
+      "title": "Council Approves Budget Increase for Critical Water Infrastructure",
+      "summary": "The town council approved a budget amendment to fund the completion of the Deep Well Injection Phase 2, ensuring compliance with environmental regulations.",
+      "angles": [
+        {
+          "name": "Infrastructure Investment",
+          "description": "Highlight the importance of investing in critical water infrastructure.",
+          "prompt_hint": "Discuss the long-term benefits of investing in water infrastructure."
+        },
+        {
+          "name": "Environmental Compliance",
+          "description": "Focus on compliance with environmental standards and the benefits thereof.",
+          "prompt_hint": "Explore how the project aligns with environmental protection goals."
+        },
+        {
+          "name": "Financial Strategy",
+          "description": "Examine the financial planning and resource allocation for the project.",
+          "prompt_hint": "Analyze the budgetary implications and funding strategy for the project."
         }
       ]
     }

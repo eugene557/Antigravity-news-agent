@@ -307,10 +307,15 @@ app.get('/api/agents/town-meeting/meetings', (req, res) => {
         processedDate = stat.mtime.toISOString();
       } catch (e) { }
 
-      // Get ideas count if current_ideas.json matches this video
+      // Get ideas count from per-meeting ideas file first, then fallback to current_ideas.json
       let ideasCount = 0;
       try {
-        if (fs.existsSync(IDEAS_FILE)) {
+        const meetingIdeasFile = path.join(dataDir, `${videoId}_ideas.json`);
+        if (fs.existsSync(meetingIdeasFile)) {
+          const ideasData = JSON.parse(fs.readFileSync(meetingIdeasFile, 'utf-8'));
+          ideasCount = ideasData.ideas?.length || 0;
+        } else if (fs.existsSync(IDEAS_FILE)) {
+          // Fallback to current_ideas.json if it matches this video
           const ideasData = JSON.parse(fs.readFileSync(IDEAS_FILE, 'utf-8'));
           if (ideasData.metadata?.videoId === videoId) {
             ideasCount = ideasData.ideas?.length || 0;

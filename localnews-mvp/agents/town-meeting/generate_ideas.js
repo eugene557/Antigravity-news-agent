@@ -29,10 +29,26 @@ async function loadTranscript(transcriptPath) {
 async function generateIdeas(transcriptText) {
     console.log('💡 Generating article ideas from transcript...');
 
-    const systemPrompt = `You are a savvy local news editor. 
-Review the meeting transcript and identify the most newsworthy events.
-For each event, suggest a compelling article idea.
+    const systemPrompt = `You are a savvy local news editor for a local Jupiter, Florida publication.
+Review the meeting transcript and identify ALL newsworthy events, decisions, and discussions.
+
+IMPORTANT: Generate as many article ideas as the content supports (aim for the best and most newsworthy, up to 12 ideas). Be thorough - don't miss important topics. Look for:
+- Major decisions and votes
+- Budget allocations and financial matters
+- New projects, initiatives, or programs
+- Community concerns raised by residents during public comment
+- Updates on ongoing projects or initiatives
+- Recognition of individuals, organizations, or achievements
+- Policy changes, ordinances, or resolutions
+- Environmental or infrastructure updates
+- Public safety announcements or initiatives
+- Upcoming events or community activities mentioned
+- Intergovernmental relations or partnerships
+- Economic development or business matters
+- Parks, recreation, or quality of life improvements
+
 For each idea, provide 2-3 different "angles" or hooks that a reporter could use.
+Each angle should offer a distinct perspective (e.g., fiscal impact, community benefit, future implications, human interest).
 
 Return a JSON object with this structure:
 {

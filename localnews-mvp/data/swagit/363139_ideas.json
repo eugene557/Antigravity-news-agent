@@ -1,70 +1,98 @@
 {
   "metadata": {
     "videoId": "363139",
-    "generatedAt": "2026-01-03T22:39:58.424Z"
+    "generatedAt": "2026-01-04T08:56:50.300Z"
   },
   "ideas": [
     {
       "id": "1",
-      "event": "The Golf Channel Games special event permit application was discussed, featuring a national TV spot with top golfers.",
-      "title": "Jupiter to Shine on National Stage with Golf Channel Games",
-      "summary": "Jupiter, Florida will soon be in the national spotlight as it hosts the Golf Channel Games, featuring top golfers like Rory McIlroy and Scottie Scheffler. This event promises to showcase the town on a global scale.",
+      "event": "Approval of Golf Channel Games Special Permit",
+      "title": "Golf Channel Games to Shine National Spotlight on Jupiter",
+      "summary": "Jupiter will host the Golf Channel Games at Trump National, featuring top golfers such as Scotty Scheffler and Rory McIlroy. The event, set for December 17, promises national exposure for the town.",
       "angles": [
         {
           "name": "Community Impact",
-          "description": "Explore how the event will affect local businesses, tourism, and community pride.",
-          "prompt_hint": "Focus on the benefits and challenges for Jupiter's local economy and community."
+          "description": "Explore how this event will boost local pride and potentially increase tourism in Jupiter.",
+          "prompt_hint": "Focus on local community benefits and tourism potential."
         },
         {
-          "name": "Security and Logistics",
-          "description": "Detail the extensive security and logistical plans necessary for hosting such a high-profile event.",
-          "prompt_hint": "Highlight the planning and security measures being implemented for the event."
+          "name": "Public Safety and Logistics",
+          "description": "Examine the security measures and logistical planning involved in hosting a high-profile event.",
+          "prompt_hint": "Detail the security and logistics planning for the event."
         },
         {
-          "name": "Golfing Culture in Jupiter",
-          "description": "Examine the role of golf in Jupiter's identity and how events like these bolster its reputation.",
-          "prompt_hint": "Discuss Jupiter's golfing culture and how this event enhances it."
+          "name": "Economic Impact",
+          "description": "Analyze the economic benefits for local businesses due to the influx of visitors.",
+          "prompt_hint": "Evaluate economic opportunities for local businesses."
         }
       ]
     },
     {
       "id": "2",
-      "event": "Approval of the Getz Subdivision annexation into the Town of Jupiter.",
-      "title": "Jupiter Expands: Getz Subdivision Annexation Approved",
-      "summary": "The Getz Subdivision has officially been annexed into Jupiter, aligning it with town services and zoning. This marks a step towards greater municipal cohesion and potential development.",
+      "event": "Approval of Getz Subdivision Voluntary Annexation",
+      "title": "Jupiter Expands: Getz Subdivision Joins the Town",
+      "summary": "The Getz Subdivision has been voluntarily annexed into Jupiter, aligning its zoning with the town and potentially paving the way for new developments.",
       "angles": [
         {
-          "name": "Municipal Growth",
-          "description": "Analyze the implications of expanding Jupiter's boundaries with the Getz Subdivision annexation.",
-          "prompt_hint": "Discuss the benefits and potential challenges of expanding Jupiter's municipal boundaries."
+          "name": "Urban Expansion",
+          "description": "Discuss the implications of Jupiter's expanding boundaries and what it means for local development.",
+          "prompt_hint": "Consider the effects of expanding town boundaries."
         },
         {
-          "name": "Zoning and Development",
-          "description": "Explore how the annexation affects zoning laws and future development possibilities for the area.",
-          "prompt_hint": "Focus on what changes in zoning mean for future development."
+          "name": "Community Development",
+          "description": "Explore how this annexation could spur development and improve local infrastructure.",
+          "prompt_hint": "Focus on potential development and infrastructure improvements."
+        },
+        {
+          "name": "Zoning and Planning",
+          "description": "Analyze the zoning changes and what they mean for the future land use of the area.",
+          "prompt_hint": "Detail the zoning changes and future land use plans."
         }
       ]
     },
     {
       "id": "3",
-      "event": "The Beacon Park proposal for a zoning change from industrial to residential was deliberated.",
-      "title": "Beacon Park: A New Vision for Jupiter's Growth",
-      "summary": "Beacon Park's proposal to shift from industrial to residential zoning could significantly reduce traffic and align with the town's residential character. This move represents a pivotal decision for Jupiter's urban planning.",
+      "event": "Beacon Park Proposed Rezoning and Land Use Change",
+      "title": "Beacon Park: From Industrial to Residential Oasis?",
+      "summary": "A proposal to rezone Beacon Park from industrial to residential could significantly alter traffic patterns and local infrastructure needs.",
       "angles": [
         {
-          "name": "Traffic Reduction",
-          "description": "Examine how the proposed zoning change could relieve traffic congestion issues on Indiantown Road.",
-          "prompt_hint": "Highlight the potential traffic improvements from the zoning change."
+          "name": "Traffic and Mobility",
+          "description": "Evaluate the potential reduction in traffic and how it aligns with Jupiter's mobility goals.",
+          "prompt_hint": "Focus on the traffic reduction and mobility benefits."
         },
         {
-          "name": "Economic Trade-offs",
-          "description": "Discuss the potential economic implications of losing industrial zoning in favor of residential development.",
-          "prompt_hint": "Focus on the economic impacts of transitioning from industrial to residential zoning."
+          "name": "Economic Development vs. Residential Needs",
+          "description": "Debate the trade-off between maintaining a strong local economy and addressing residential development needs.",
+          "prompt_hint": "Consider the economic implications of the rezoning proposal."
         },
         {
           "name": "Community Feedback",
-          "description": "Reflect on community reactions and concerns regarding the proposed changes at Beacon Park.",
-          "prompt_hint": "Explore how local residents feel about the proposed zoning changes."
+          "description": "Highlight the community's response to the proposed changes and their concerns or support.",
+          "prompt_hint": "Explore community reactions and feedback on the rezoning."
+        }
+      ]
+    },
+    {
+      "id": "4",
+      "event": "Discussion on Directional Signage for Golf Event",
+      "title": "Navigating the Golf Channel Games: Signage Plans Unveiled",
+      "summary": "To aid visitors during the Golf Channel Games, temporary directional signage will guide attendees to parking and venue locations.",
+      "angles": [
+        {
+          "name": "Visitor Experience",
+          "description": "Discuss how effective signage can enhance visitor experience and reduce confusion.",
+          "prompt_hint": "Focus on visitor experience improvements through signage."
+        },
+        {
+          "name": "Logistical Challenges",
+          "description": "Examine the logistical challenges of directing large crowds and how signage plays a role.",
+          "prompt_hint": "Detail the logistics of managing event traffic and signage."
+        },
+        {
+          "name": "Community Impact",
+          "description": "Consider the impact on local traffic and how signage will minimize disruptions.",
+          "prompt_hint": "Evaluate the impact of signage on local traffic flow."
         }
       ]
     }

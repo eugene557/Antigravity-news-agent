@@ -15,6 +15,7 @@ import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getPuppeteerLaunchOptions } from './lib/chromium.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.join(__dirname, '..');
@@ -92,10 +93,7 @@ async function scrapeCalendar() {
     console.log('🗓️  Jupiter FL Calendar Sync\n');
     console.log(`📡 Fetching: ${CALENDAR_URL}\n`);
 
-    const browser = await puppeteer.launch({
-        headless: 'new',
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
+    const browser = await puppeteer.launch(getPuppeteerLaunchOptions());
 
     try {
         const page = await browser.newPage();

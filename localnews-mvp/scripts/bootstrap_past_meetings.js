@@ -17,6 +17,7 @@ import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getPuppeteerLaunchOptions } from './lib/chromium.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -283,10 +284,7 @@ async function main() {
     console.log(`📅 Cutoff date: ${CUTOFF_DATE.toDateString()}`);
     console.log(`⚡ Concurrency: ${CONCURRENCY} parallel extractions\n`);
 
-    const browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-    });
+    const browser = await puppeteer.launch(getPuppeteerLaunchOptions());
 
     try {
         // Load existing meetings

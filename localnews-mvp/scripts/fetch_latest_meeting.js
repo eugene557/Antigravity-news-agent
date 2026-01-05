@@ -1,9 +1,26 @@
-
 import puppeteer from 'puppeteer';
 import https from 'https';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { getPuppeteerLaunchOptions } from './lib/chromium.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const MEETINGS_PATH = path.join(__dirname, '..', 'data', 'meetings.json');
 
 const DEFAULT_URL = 'https://jupiterfl.new.swagit.com/views/229/'; // Town Council view
 const SWAGIT_URL = process.argv[2] || DEFAULT_URL;
+
+// Load already-processed video IDs
+function getProcessedVideoIds() {
+    try {
+        if (fs.existsSync(MEETINGS_PATH)) {
+            const meetings = JSON.parse(fs.readFileSync(MEETINGS_PATH, 'utf-8'));
+            return new Set(meetings.filter(m => m.videoId).map(m => m.videoId));
+        }
+    } catch (e) { /* ignore */ }
+    return new Set();
+}
 
 // Check if a video belongs to Jupiter FL by checking its S3 URL
 async function isJupiterVideo(videoId) {
@@ -26,10 +43,7 @@ async function isJupiterVideo(videoId) {
 }
 
 async function getLatestMeetingId() {
-    const browser = await puppeteer.launch({
-        headless: 'new',
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
+    const browser = await puppeteer.launch(getPuppeteerLaunchOptions());
 
     try {
         const page = await browser.newPage();
@@ -61,13 +75,26 @@ async function getLatestMeetingId() {
             throw new Error('No video IDs found on page');
         }
 
-        // Find the first video that actually belongs to Jupiter FL
+        // Load already-processed videos to skip
+        const processedIds = getProcessedVideoIds();
+        if (processedIds.size > 0) {
+            console.error(`Already processed ${processedIds.size} meetings, will skip those...`);
+        }
+
+        // Find the first NEW video that actually belongs to Jupiter FL
         // Only check first 5 videos to avoid long waits
         const maxToCheck = Math.min(videoIds.length, 5);
         console.error(`Checking ${maxToCheck} of ${videoIds.length} videos for Jupiter FL content...`);
 
         for (let i = 0; i < maxToCheck; i++) {
             const videoId = videoIds[i];
+
+            // Skip if already processed
+            if (processedIds.has(videoId)) {
+                console.error(`  Skipping ${videoId} (already processed)`);
+                continue;
+            }
+
             console.error(`  Checking ${videoId}...`);
             const isJupiter = await isJupiterVideo(videoId);
             if (isJupiter) {
@@ -77,7 +104,7 @@ async function getLatestMeetingId() {
         }
 
         // Exit with code 2 to indicate "no new meetings" (not an error, just nothing to process)
-        console.error('NO_NEW_MEETINGS: All recent videos belong to other agencies');
+        console.error('NO_NEW_MEETINGS: All recent videos already processed or belong to other agencies');
         process.exit(2);
 
     } catch (error) {

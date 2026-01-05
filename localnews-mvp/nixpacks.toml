@@ -1,0 +1,31 @@
+# Nixpacks configuration for Railway deployment
+# Ensures Puppeteer has all required dependencies
+
+[phases.setup]
+nixPkgs = [
+  "nodejs_20",
+  "chromium",
+  "libuuid",
+  "nss",
+  "nspr",
+  "at-spi2-atk",
+  "cups",
+  "libdrm",
+  "libxkbcommon",
+  "pango",
+  "cairo",
+  "alsa-lib"
+]
+
+[phases.install]
+cmds = ["npm install"]
+
+[phases.build]
+cmds = ["npm run build:dashboard"]
+
+[variables]
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
+NODE_ENV = "production"
+
+[start]
+cmd = "node dashboard/server.js"

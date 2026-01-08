@@ -18,7 +18,13 @@
       "Bash(open http://localhost:5173)",
       "Bash(FAST_MODE=true node scripts/swagit_downloader.js:*)",
       "Bash(xargs:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(git reset:*)",
+      "Bash(git rm:*)",
+      "Bash(ls:*)",
+      "Bash(done)",
+      "Bash(claude mcp add:*)",
+      "Bash(railway link:*)"
     ]
   }
 }

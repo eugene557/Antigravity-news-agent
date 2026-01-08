@@ -49,7 +49,8 @@ function CustomDropdown({ options, value, onChange, placeholder }) {
   );
 }
 
-const API_URL = 'http://localhost:3001/api';
+// In production, use relative URLs (same origin). In dev, use localhost:3001
+const API_URL = import.meta.env.PROD ? '/api' : 'http://localhost:3001/api';
 
 // Login Screen Component
 function LoginScreen({ onLogin }) {
@@ -489,7 +490,7 @@ function App() {
     }
   }
 
-  async function generateArticleFromIdea(ideaId, angleName) {
+  async function generateArticleFromIdea(ideaId, angleName, videoId) {
     try {
       addToast('info', 'Generation', 'Starting article generation...');
       const departmentId = selectedDeptId;
@@ -497,7 +498,7 @@ function App() {
       await fetch(`${API_URL}/agents/town-meeting/generate-article`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ideaId, angleName, departmentId })
+        body: JSON.stringify({ ideaId, angleName, departmentId, videoId })
       });
 
       setAgentStatus(prev => ({
@@ -668,7 +669,7 @@ function App() {
                 setSelectedArticle(null);
               }}
             >
-              Upcoming {upcomingMeetings.length > 0 && <span className="badge">{upcomingMeetings.length}</span>}
+              Upcoming
             </button>
             <button
               className={`nav-item nav-sub ${!showSettings && viewSource === 'town-meeting' && townHallView === 'articles' ? 'active' : ''}`}
@@ -756,17 +757,6 @@ function App() {
                   </h2>
                 </div>
                 <div className="feed-actions">
-                  {townHallView !== 'upcoming' && (
-                    <CustomDropdown
-                      options={settings?.departments.map(dept => ({
-                        value: dept.id,
-                        label: dept.name
-                      })) || []}
-                      value={selectedDeptId}
-                      onChange={setSelectedDeptId}
-                      placeholder="Select Department"
-                    />
-                  )}
                   {townHallView !== 'upcoming' && (
                     <AgentControl
                       name="Meeting Agent"
@@ -968,18 +958,26 @@ function ArticleCard({ article, onClick, onStatusChange }) {
   // Check if article is less than 24 hours old
   const isNew = article.createdAt && (Date.now() - new Date(article.createdAt)) < 24 * 60 * 60 * 1000;
 
-  // Source meeting info (mock - would come from article data)
-  const sourceMeeting = article.sourceMeeting || (article.agentSource === 'town-meeting' ? {
-    name: 'Town Council Regular Meeting',
-    date: 'Jan 1, 2026'
-  } : null);
+  // Source meeting info from article data
+  const sourceMeeting = article.meetingType ? {
+    name: article.meetingType,
+    date: article.meetingDate ? new Date(article.meetingDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''
+  } : null;
+
+  // Get display name for the source pill
+  const getSourceLabel = () => {
+    if (article.departmentName) return article.departmentName;
+    if (article.agentSource === 'town-meeting') return 'Town Council';
+    if (article.agentSource === 'crime-watch') return 'Crime Watch';
+    return article.agentSource || 'Unknown';
+  };
 
   return (
     <div className={`article-card ${article.status}`} onClick={onClick}>
       <div className="card-top">
         <div className="card-top-left">
-          <span className={`source-pill ${article.agentSource}`}>
-            {article.agentSource === 'town-meeting' ? 'Town Hall' : 'Crime Watch'}
+          <span className={`source-pill ${article.departmentId || article.agentSource}`}>
+            {getSourceLabel()}
           </span>
           {isNew && <span className="new-badge">New</span>}
         </div>
@@ -1036,7 +1034,7 @@ function ArticleEditor({ article, onSave, onClose, onStatusChange, saving }) {
           </button>
           <div className="cms-meta-tag">
             <span className={`source-dot ${form.agentSource}`}></span>
-            {form.agentSource === 'town-meeting' ? 'Town Hall' : 'Crime Watch'}
+            {form.departmentName || (form.agentSource === 'town-meeting' ? 'Town Council' : 'Crime Watch')}
             <span className="divider">/</span>
             {formatDate(form.createdAt)}
           </div>
@@ -1443,24 +1441,24 @@ function AddMeetingModal({ onClose, onAdd, departments }) {
     setDepartmentId(newDeptId);
   };
 
+  // Fallback departments if none provided (should match town_meeting_settings.json)
+  const fallbackDepartments = [
+    { id: 'town-council', name: 'Town Council' },
+    { id: 'planning-zoning', name: 'Planning & Zoning' },
+    { id: 'art-board', name: 'Art Committee' }
+  ];
+
+  const deptList = departments && departments.length > 0 ? departments : fallbackDepartments;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!date) return;
     setLoading(true);
-    const dept = departments?.find(d => d.id === departmentId);
+    const dept = deptList.find(d => d.id === departmentId);
     await onAdd({ date, type: dept?.name || departmentId, departmentId, description: description.trim() || null });
     setLoading(false);
     onClose();
   };
-
-  // Fallback departments if none provided
-  const fallbackDepartments = [
-    { id: 'town-council', name: 'Town Council' },
-    { id: 'planning-board', name: 'Planning Board' },
-    { id: 'commissioners', name: 'Commissioners Meetings' }
-  ];
-
-  const deptList = departments && departments.length > 0 ? departments : fallbackDepartments;
   const departmentOptions = deptList.map(dept => ({
     value: dept.id,
     label: dept.name
@@ -1618,12 +1616,6 @@ function UpcomingMeetingsView({ meetings, departments, viewMode, onViewModeChang
   return (
     <>
       <div className="upcoming-header">
-        <div className="upcoming-tabs">
-          <button className="upcoming-tab active">
-            Upcoming
-            <span className="tab-count">{enrichedMeetings.length}</span>
-          </button>
-        </div>
         <div className="upcoming-controls">
           <div className="view-toggle">
             <button
@@ -1699,24 +1691,24 @@ function UpcomingMeetingsView({ meetings, departments, viewMode, onViewModeChang
               </div>
               <div className="calendar-nav-right">
                 <button className="calendar-today-btn" onClick={goToToday}>Today</button>
-                {meetingMonths.length > 0 && (
-                  <div className="calendar-month-dots">
-                    {meetingMonths.slice(0, 5).map(monthKey => {
-                      const [y, m] = monthKey.split('-').map(Number);
-                      const isActive = currentMonth.year === y && currentMonth.month === m;
-                      return (
-                        <button
-                          key={monthKey}
-                          className={`calendar-month-dot ${isActive ? 'active' : ''}`}
-                          onClick={() => setCurrentMonth({ year: y, month: m })}
-                          title={getMonthName(y, m)}
-                        >
-                          {new Date(y, m - 1).toLocaleDateString('en-US', { month: 'short' })}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+                <div className="calendar-month-dots">
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const month = i + 1;
+                    const year = 2026;
+                    const isActive = currentMonth.year === year && currentMonth.month === month;
+                    const hasEvents = meetingMonths.includes(`${year}-${month}`);
+                    return (
+                      <button
+                        key={`${year}-${month}`}
+                        className={`calendar-month-dot ${isActive ? 'active' : ''} ${hasEvents ? 'has-events' : ''}`}
+                        onClick={() => setCurrentMonth({ year, month })}
+                        title={getMonthName(year, month)}
+                      >
+                        {new Date(year, month - 1).toLocaleDateString('en-US', { month: 'short' })}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
@@ -1896,15 +1888,17 @@ function MeetingDetailView({ meeting, onBack, onSelectIdea, onGenerateArticle })
   };
 
   const handleGenerate = (idea, angleName) => {
-    onGenerateArticle(idea.id, angleName || 'Main');
+    const videoId = meeting.videoId || meeting.id;
+    onGenerateArticle(idea.id, angleName || 'Main', videoId);
     onBack();
   };
 
   const handleBatchGenerate = () => {
+    const videoId = meeting.videoId || meeting.id;
     selectedIdeas.forEach(ideaId => {
       const idea = ideas.find(i => i.id === ideaId);
       if (idea) {
-        onGenerateArticle(idea.id, idea.angles?.[0]?.name || 'Main');
+        onGenerateArticle(idea.id, idea.angles?.[0]?.name || 'Main', videoId);
       }
     });
     onBack();

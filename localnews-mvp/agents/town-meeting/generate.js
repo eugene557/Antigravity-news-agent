@@ -180,16 +180,27 @@ async function main() {
 
     const contextText = contextData.fullText || contextData.analysis?.meeting_summary || '';
 
-    // 2. Find Idea and Angle
-    const ideasPath = path.join(__dirname, '../../data/swagit/current_ideas.json');
+    // 2. Find Idea and Angle - check per-meeting ideas file first
+    const videoId = process.env.VIDEO_ID || contextData.videoId || contextData.metadata?.videoId;
+    let ideasPath = path.join(__dirname, '../../data/swagit/current_ideas.json');
+
+    // Try per-meeting ideas file first
+    if (videoId) {
+      const meetingIdeasPath = path.join(__dirname, `../../data/swagit/${videoId}_ideas.json`);
+      if (fs.existsSync(meetingIdeasPath)) {
+        ideasPath = meetingIdeasPath;
+        console.log(`📂 Using meeting-specific ideas: ${videoId}_ideas.json`);
+      }
+    }
+
     if (!fs.existsSync(ideasPath)) throw new Error('Ideas file not found');
     const ideasData = JSON.parse(fs.readFileSync(ideasPath, 'utf-8'));
 
-    const idea = ideasData.ideas.find(i => i.id === ideaId);
-    if (!idea) throw new Error(`Idea ${ideaId} not found`);
+    const idea = ideasData.ideas.find(i => String(i.id) === String(ideaId));
+    if (!idea) throw new Error(`Idea ${ideaId} not found in ${path.basename(ideasPath)}`);
 
     const angle = idea.angles.find(a => a.name === angleName);
-    if (!angle) throw new Error(`Angle ${angleName} not found`);
+    if (!angle) throw new Error(`Angle "${angleName}" not found for idea ${ideaId}`);
 
     // 3. Load Board Members
     const settings = await loadSettings();

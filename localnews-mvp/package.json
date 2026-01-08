@@ -2,14 +2,24 @@
   "name": "localnews-mvp",
   "version": "1.0.0",
   "type": "module",
-  "description": "Local news MVP with AI agents",
-  "main": "index.js",
+  "description": "Local news MVP with AI agents for Jupiter, FL",
+  "main": "dashboard/server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
-    "start": "node index.js",
-    "transcribe": "node agents/town-meeting/transcribe.js"
+    "start": "node dashboard/server.js",
+    "start:prod": "npm run build:dashboard && node dashboard/server.js",
+    "build:dashboard": "cd dashboard && npm run build",
+    "dev": "cd dashboard && npm run dev",
+    "server": "node dashboard/server.js",
+    "transcribe": "node agents/town-meeting/transcribe.js",
+    "postinstall": "cd dashboard && npm install"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "googleapis": "^131.0.0",
     "openai": "^4.24.1",
     "p-limit": "^7.2.0",

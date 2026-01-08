@@ -702,17 +702,6 @@ body {
   border: 1px solid var(--gray-200);
 }
 
-.source-pill.town-meeting {
-  background: #E3F2FD;
-  color: #1565C0;
-  border-color: #BBDEFB;
-}
-
-.source-pill.crime-watch {
-  background: var(--primary-muted);
-  color: var(--primary);
-  border-color: #FFCDD2;
-}
 
 .card-main h3 {
   font-family: var(--font-ui);
@@ -4017,17 +4006,20 @@ body {
 /* Calendar Navigation */
 .calendar-nav {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   padding: 16px 20px;
   border-bottom: 2px solid var(--border);
   background: var(--gray-50);
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .calendar-nav-left {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .calendar-nav-btn {
@@ -4062,8 +4054,10 @@ body {
 
 .calendar-nav-right {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
+  flex: 1;
+  justify-content: flex-end;
 }
 
 .calendar-today-btn {
@@ -4084,25 +4078,36 @@ body {
 }
 
 .calendar-month-dots {
-  display: flex;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 2px;
+  width: 100%;
+  max-width: 480px;
 }
 
 .calendar-month-dot {
   background: var(--gray-100);
   border: 1px solid var(--border);
-  padding: 6px 10px;
-  font-size: 11px;
+  padding: 6px 2px;
+  font-size: 9px;
   font-weight: 600;
   cursor: pointer;
   color: var(--text-muted);
   transition: all 0.15s;
   text-transform: uppercase;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .calendar-month-dot:hover {
   background: var(--gray-200);
   color: var(--gray-700);
+}
+
+.calendar-month-dot.has-events {
+  background: var(--white);
+  color: var(--gray-600);
+  border-color: var(--gray-300);
 }
 
 .calendar-month-dot.active {

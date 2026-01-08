@@ -71,5 +71,302 @@
     "status": "upcoming",
     "source": "jupiter-calendar",
     "syncedAt": "2026-01-03T19:46:12.559Z"
+  },
+  {
+    "id": "sched_tc_2026-02-03",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-02-03",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_pz_2026-02-09",
+    "departmentId": "planning-zoning",
+    "type": "Planning and Zoning Commission Meeting",
+    "date": "2026-02-09",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_tc_2026-02-17",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-02-17",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_tc_2026-03-03",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-03-03",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_pz_2026-03-09",
+    "departmentId": "planning-zoning",
+    "type": "Planning and Zoning Commission Meeting",
+    "date": "2026-03-09",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_tc_2026-03-17",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-03-17",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_tc_2026-04-07",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-04-07",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_pz_2026-04-13",
+    "departmentId": "planning-zoning",
+    "type": "Planning and Zoning Commission Meeting",
+    "date": "2026-04-13",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_tc_2026-04-21",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-04-21",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_tc_2026-05-05",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-05-05",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_pz_2026-05-11",
+    "departmentId": "planning-zoning",
+    "type": "Planning and Zoning Commission Meeting",
+    "date": "2026-05-11",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_tc_2026-05-19",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-05-19",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_tc_2026-06-02",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-06-02",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_pz_2026-06-08",
+    "departmentId": "planning-zoning",
+    "type": "Planning and Zoning Commission Meeting",
+    "date": "2026-06-08",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_tc_2026-06-16",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-06-16",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_tc_2026-07-07",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-07-07",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_pz_2026-07-13",
+    "departmentId": "planning-zoning",
+    "type": "Planning and Zoning Commission Meeting",
+    "date": "2026-07-13",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_tc_2026-07-21",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-07-21",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_tc_2026-08-04",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-08-04",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_pz_2026-08-10",
+    "departmentId": "planning-zoning",
+    "type": "Planning and Zoning Commission Meeting",
+    "date": "2026-08-10",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_tc_2026-08-18",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-08-18",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_tc_2026-09-01",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-09-01",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_pz_2026-09-14",
+    "departmentId": "planning-zoning",
+    "type": "Planning and Zoning Commission Meeting",
+    "date": "2026-09-14",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_tc_2026-09-15",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-09-15",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_tc_2026-10-06",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-10-06",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_pz_2026-10-12",
+    "departmentId": "planning-zoning",
+    "type": "Planning and Zoning Commission Meeting",
+    "date": "2026-10-12",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_tc_2026-10-20",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-10-20",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_tc_2026-11-03",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-11-03",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_pz_2026-11-09",
+    "departmentId": "planning-zoning",
+    "type": "Planning and Zoning Commission Meeting",
+    "date": "2026-11-09",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_tc_2026-11-17",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-11-17",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_tc_2026-12-01",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-12-01",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_pz_2026-12-14",
+    "departmentId": "planning-zoning",
+    "type": "Planning and Zoning Commission Meeting",
+    "date": "2026-12-14",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
+  },
+  {
+    "id": "sched_tc_2026-12-15",
+    "departmentId": "town-council",
+    "type": "Town Council Regular Meeting",
+    "date": "2026-12-15",
+    "status": "upcoming",
+    "source": "scheduled",
+    "syncedAt": "2026-01-04T09:28:09.132Z"
   }
 ]

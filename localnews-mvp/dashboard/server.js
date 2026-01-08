@@ -46,10 +46,18 @@ function saveStatus() {
 }
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
+const isProduction = process.env.NODE_ENV === 'production';
 
 app.use(cors());
 app.use(express.json());
+
+// In production, serve the built React app
+if (isProduction) {
+  const distPath = path.join(__dirname, 'dist');
+  app.use(express.static(distPath));
+  console.log(`Serving static files from: ${distPath}`);
+}
 
 // Google Sheets setup
 const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
@@ -95,19 +103,63 @@ app.get('/api/articles', async (req, res) => {
       return res.json([]);
     }
 
-    const articles = rows.slice(1).map((row, index) => ({
-      id: index + 2, // Row number (1-indexed, skip header)
-      agentSource: row[COLUMNS.AGENT_SOURCE] || '',
-      headline: row[COLUMNS.HEADLINE] || '',
-      body: row[COLUMNS.BODY] || '',
-      summary: row[COLUMNS.SUMMARY] || '',
-      twitter: row[COLUMNS.TWITTER] || '',
-      facebook: row[COLUMNS.FACEBOOK] || '',
-      instagram: row[COLUMNS.INSTAGRAM] || '',
-      sourceUrl: row[COLUMNS.SOURCE_URL] || '',
-      status: row[COLUMNS.STATUS] || 'draft',
-      createdAt: row[COLUMNS.CREATED_AT] || ''
-    }));
+    // Load meetings data for department lookup
+    const meetingsFile = path.join(__dirname, '..', 'data', 'meetings.json');
+    let meetingsData = [];
+    try {
+      if (fs.existsSync(meetingsFile)) {
+        meetingsData = JSON.parse(fs.readFileSync(meetingsFile, 'utf-8'));
+      }
+    } catch (e) { }
+
+    // Load settings for department names
+    let settingsData = { departments: [] };
+    try {
+      if (fs.existsSync(SETTINGS_FILE)) {
+        settingsData = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
+      }
+    } catch (e) { }
+
+    const articles = rows.slice(1).map((row, index) => {
+      const sourceUrl = row[COLUMNS.SOURCE_URL] || '';
+
+      // Extract video ID from sourceUrl
+      let departmentId = null;
+      let departmentName = null;
+      let meetingType = null;
+      let meetingDate = null;
+
+      const videoMatch = sourceUrl.match(/\/videos\/(\d+)/);
+      if (videoMatch) {
+        const videoId = videoMatch[1];
+        const meeting = meetingsData.find(m => m.videoId === videoId);
+        if (meeting) {
+          departmentId = meeting.departmentId;
+          meetingType = meeting.type;
+          meetingDate = meeting.date;
+          const dept = settingsData.departments.find(d => d.id === departmentId);
+          departmentName = dept?.name || departmentId;
+        }
+      }
+
+      return {
+        id: index + 2, // Row number (1-indexed, skip header)
+        agentSource: row[COLUMNS.AGENT_SOURCE] || '',
+        headline: row[COLUMNS.HEADLINE] || '',
+        body: row[COLUMNS.BODY] || '',
+        summary: row[COLUMNS.SUMMARY] || '',
+        twitter: row[COLUMNS.TWITTER] || '',
+        facebook: row[COLUMNS.FACEBOOK] || '',
+        instagram: row[COLUMNS.INSTAGRAM] || '',
+        sourceUrl: sourceUrl,
+        status: row[COLUMNS.STATUS] || 'draft',
+        createdAt: row[COLUMNS.CREATED_AT] || '',
+        departmentId,
+        departmentName,
+        meetingType,
+        meetingDate
+      };
+    });
 
     res.json(articles);
   } catch (error) {
@@ -510,10 +562,10 @@ app.get('/api/agents/town-meeting/ideas', (req, res) => {
 
 /**
  * POST /api/agents/town-meeting/generate-article
- * Body: { ideaId, angleName, departmentId }
+ * Body: { ideaId, angleName, departmentId, videoId }
  */
 app.post('/api/agents/town-meeting/generate-article', async (req, res) => {
-  const { ideaId, angleName, departmentId } = req.body;
+  const { ideaId, angleName, departmentId, videoId } = req.body;
 
   if (agentStatus.townMeeting.running) {
     return res.status(409).json({ error: 'Agent already running' });
@@ -527,14 +579,26 @@ app.post('/api/agents/town-meeting/generate-article', async (req, res) => {
     const dataDir = path.join(__dirname, '..', 'data', 'swagit');
 
     try {
-      // Find the latest transcript
-      const transcriptFiles = fs.readdirSync(dataDir).filter(f => f.includes('_transcript.json'));
-      if (transcriptFiles.length === 0) throw new Error('No transcript file found');
-      const latestTranscript = transcriptFiles.sort().reverse()[0];
-      const transcriptPath = path.join(dataDir, latestTranscript);
+      // Use the specific meeting's transcript if videoId is provided
+      let transcriptPath;
+      if (videoId) {
+        transcriptPath = path.join(dataDir, `${videoId}_transcript.json`);
+        if (!fs.existsSync(transcriptPath)) {
+          throw new Error(`Transcript not found for video ${videoId}`);
+        }
+      } else {
+        // Fallback to latest transcript
+        const transcriptFiles = fs.readdirSync(dataDir).filter(f => f.includes('_transcript.json'));
+        if (transcriptFiles.length === 0) throw new Error('No transcript file found');
+        const latestTranscript = transcriptFiles.sort().reverse()[0];
+        transcriptPath = path.join(dataDir, latestTranscript);
+      }
 
-      console.log(`Generating article for idea ${ideaId}, angle ${angleName}...`);
-      await runScript(agentDir, 'generate.js', [transcriptPath, ideaId, angleName], { DEPARTMENT_ID: departmentId });
+      console.log(`Generating article for idea ${ideaId}, angle ${angleName}, video ${videoId || 'latest'}...`);
+      await runScript(agentDir, 'generate.js', [transcriptPath, ideaId, angleName], {
+        DEPARTMENT_ID: departmentId,
+        VIDEO_ID: videoId || ''
+      });
 
       agentStatus.townMeeting.running = false;
       agentStatus.townMeeting.lastResult = { type: 'success', message: 'Article generated and added to drafts', count: 1 };
@@ -782,6 +846,23 @@ function parseAgentResult(output, type) {
   return { type: 'info', message: 'Agent completed', count: null };
 }
 
+// In production, serve React app for any non-API routes (client-side routing)
+if (isProduction) {
+  // Express 5 requires named parameter, use {*path} syntax
+  app.get('/{*path}', (req, res) => {
+    // Don't catch API routes
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({ error: 'API endpoint not found' });
+    }
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  });
+}
+
 app.listen(PORT, () => {
   console.log(`Dashboard API running at http://localhost:${PORT}`);
+  if (isProduction) {
+    console.log(`Production mode: Serving frontend from /dist`);
+  } else {
+    console.log(`Development mode: Frontend should run separately on port 5173`);
+  }
 });

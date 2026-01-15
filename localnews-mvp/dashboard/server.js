@@ -1130,15 +1130,15 @@ app.post('/api/agents/town-meeting/run', async (req, res) => {
       const latestTranscript = transcriptFiles.sort().reverse()[0];
       const transcriptPath = path.join(dataDir, latestTranscript);
 
-      // Run idea generator
-      console.log('Running town-meeting idea generator...');
-      await runScript(agentDir, 'generate_ideas.js', [transcriptPath, IDEAS_FILE]);
+      // Run idea generator in background (doesn't block the main flow)
+      console.log('Running town-meeting idea generator in background...');
+      runScriptBackground(agentDir, 'generate_ideas.js', [transcriptPath, IDEAS_FILE]);
 
       agentStatus.townMeeting.lastRun = new Date().toISOString();
       agentStatus.townMeeting.running = false;
-      agentStatus.townMeeting.lastResult = { type: 'success', message: 'Meeting processed and ideas generated', count: 0 };
+      agentStatus.townMeeting.lastResult = { type: 'success', message: 'Meeting processed, ideas generating in background', count: 0 };
       saveStatus();
-      console.log('Town meeting ingestion and idea generation complete');
+      console.log('Town meeting ingestion complete, idea generation running in background');
     } catch (error) {
       console.error('Town meeting agent failed:', error.message);
       agentStatus.townMeeting.running = false;
@@ -1184,6 +1184,36 @@ function runScript(cwd, script, args = [], extraEnv = {}) {
 
     proc.on('error', reject);
   });
+}
+
+/**
+ * Helper to run a script in the background (fire and forget)
+ * Used for tasks that can run independently while the main flow continues
+ */
+function runScriptBackground(cwd, script, args = [], extraEnv = {}) {
+  console.log(`🔄 Starting background task: ${script}`);
+
+  const proc = spawn('node', [script, ...args], {
+    cwd,
+    env: { ...process.env, ...extraEnv },
+    stdio: 'inherit',  // Still show output in console
+    detached: false    // Keep attached so we see logs
+  });
+
+  proc.on('close', (code) => {
+    if (code === 0) {
+      console.log(`✅ Background task completed: ${script}`);
+    } else {
+      console.error(`❌ Background task failed: ${script} (code ${code})`);
+    }
+  });
+
+  proc.on('error', (err) => {
+    console.error(`❌ Background task error: ${script} - ${err.message}`);
+  });
+
+  // Don't wait - return immediately
+  return proc;
 }
 
 /**

@@ -1059,6 +1059,63 @@ app.post('/api/agents/town-meeting/regenerate-ideas', async (req, res) => {
 });
 
 /**
+ * POST /api/agents/town-meeting/reprocess
+ * Force re-process a specific video ID (download, transcribe, analyze, generate ideas)
+ * Body: { videoId }
+ */
+app.post('/api/agents/town-meeting/reprocess', async (req, res) => {
+  const { videoId } = req.body;
+
+  if (!videoId) {
+    return res.status(400).json({ error: 'videoId is required' });
+  }
+
+  if (agentStatus.townMeeting.running) {
+    return res.status(409).json({ error: 'Agent already running' });
+  }
+
+  agentStatus.townMeeting.running = true;
+  agentStatus.townMeeting.currentMeeting = videoId;
+  res.json({ status: 'started', message: `Re-processing video ${videoId}` });
+
+  (async () => {
+    const agentDir = path.join(__dirname, '..', 'agents', 'town-meeting');
+
+    try {
+      console.log(`🔄 Force re-processing video ${videoId}...`);
+
+      // Run the scraper with the specific video ID
+      await runScript(agentDir, 'scrape.js', [], {
+        FORCE_VIDEO_ID: videoId,
+        DEPARTMENT_ID: 'town-council'
+      });
+
+      // After scraping completes, run idea generation
+      const dataDir = path.join(__dirname, '..', 'data', 'swagit');
+      const transcriptPath = path.join(dataDir, `${videoId}_transcript.json`);
+
+      if (fs.existsSync(transcriptPath)) {
+        console.log('Running idea generator...');
+        runScriptBackground(agentDir, 'generate_ideas.js', [transcriptPath]);
+      }
+
+      agentStatus.townMeeting.lastRun = new Date().toISOString();
+      agentStatus.townMeeting.running = false;
+      agentStatus.townMeeting.currentMeeting = null;
+      agentStatus.townMeeting.lastResult = { type: 'success', message: `Video ${videoId} re-processed`, count: 1 };
+      saveStatus();
+      console.log(`✅ Video ${videoId} re-processed successfully`);
+    } catch (error) {
+      console.error(`❌ Re-processing failed: ${error.message}`);
+      agentStatus.townMeeting.running = false;
+      agentStatus.townMeeting.currentMeeting = null;
+      agentStatus.townMeeting.error = error.message;
+      saveStatus();
+    }
+  })();
+});
+
+/**
  * POST /api/agents/town-meeting/generate-article
  * Body: { ideaId, angleName, departmentId, videoId }
  */

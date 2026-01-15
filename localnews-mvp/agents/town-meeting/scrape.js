@@ -364,12 +364,25 @@ async function main() {
 
     const departmentId = process.env.DEPARTMENT_ID || 'town-council';
     const mode = process.env.SCRAPE_MODE || 'latest'; // 'latest' or 'upcoming'
+    const forceVideoId = process.env.FORCE_VIDEO_ID; // Force re-process specific video
 
     console.log(`   Department: ${departmentId}`);
     console.log(`   Mode: ${mode}`);
     console.log(`   PORT env: ${process.env.PORT || '(not set, using 8080)'}`);
+    if (forceVideoId) {
+        console.log(`   FORCE_VIDEO_ID: ${forceVideoId}`);
+    }
 
     try {
+        // If FORCE_VIDEO_ID is set, skip discovery and process that specific video
+        if (forceVideoId) {
+            console.log(`\n🔄 Force re-processing video ${forceVideoId}...`);
+            await processVideo(forceVideoId);
+            await registerProcessedMeeting(forceVideoId, departmentId);
+            console.log('\n✅ Force re-processing complete.');
+            return;
+        }
+
         if (mode === 'upcoming') {
             // Process scheduled meetings that are ready
             const readyMeetings = getReadyUpcomingMeetings(departmentId);

@@ -5,6 +5,7 @@
 nixPkgs = [
   "nodejs_20",
   "chromium",
+  "ffmpeg",
   "libuuid",
   "nss",
   "nspr",

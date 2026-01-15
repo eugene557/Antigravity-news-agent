@@ -85,6 +85,69 @@ function extractUuidFromS3Url(s3Url) {
     return null;
 }
 
+/**
+ * Fetch meeting metadata (title, date) from Swagit video page
+ */
+async function fetchMeetingMetadata(videoId) {
+    const url = `${SWAGIT_BASE_URL}/videos/${videoId}`;
+
+    return new Promise((resolve, reject) => {
+        https.get(url, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+                try {
+                    // Extract title which contains date: "Jan 06, 2026 Town Council - Jupiter, FL"
+                    const titleMatch = data.match(/<title>([^<]+)<\/title>/);
+                    if (titleMatch) {
+                        const title = titleMatch[1];
+                        // Parse date from title format: "Jan 06, 2026 Town Council"
+                        const dateMatch = title.match(/^(\w{3})\s+(\d{2}),\s+(\d{4})/);
+                        if (dateMatch) {
+                            const months = { Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06',
+                                           Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12' };
+                            const month = months[dateMatch[1]] || '01';
+                            const day = dateMatch[2];
+                            const year = dateMatch[3];
+                            const isoDate = `${year}-${month}-${day}`;
+
+                            // Extract meeting type from title
+                            const typeMatch = title.match(/^\w{3}\s+\d{2},\s+\d{4}\s+(.+?)(?:\s*-\s*|$)/);
+                            const meetingType = typeMatch ? typeMatch[1].trim() : 'Meeting';
+
+                            resolve({ date: isoDate, title: title.split(' - ')[0], type: meetingType });
+                            return;
+                        }
+                    }
+                    resolve({ date: null, title: null, type: null });
+                } catch (e) {
+                    resolve({ date: null, title: null, type: null });
+                }
+            });
+        }).on('error', () => resolve({ date: null, title: null, type: null }));
+    });
+}
+
+/**
+ * Save meeting metadata to a JSON file
+ */
+async function saveMeetingMetadata(videoId) {
+    const metadata = await fetchMeetingMetadata(videoId);
+    if (metadata.date) {
+        const metadataPath = path.join(OUTPUT_DIR, `${videoId}_metadata.json`);
+        fs.writeFileSync(metadataPath, JSON.stringify({
+            videoId,
+            date: metadata.date,
+            title: metadata.title,
+            type: metadata.type,
+            fetchedAt: new Date().toISOString()
+        }, null, 2));
+        console.log(`✅ Meeting metadata saved: ${metadata.title} (${metadata.date})`);
+        return metadata;
+    }
+    return null;
+}
+
 function extractAudio(inputPath, outputPath) {
     return new Promise((resolve, reject) => {
         console.log(`Extracting audio from ${inputPath} to ${outputPath}...`);
@@ -151,6 +214,9 @@ async function main() {
             process.exit(1);
         }
 
+        // Fetch and save meeting metadata (date, title, type) from Swagit page
+        await saveMeetingMetadata(videoId);
+
         let vttDownloaded = false;
         const vttPath = path.join(OUTPUT_DIR, `${videoId}.vtt`);
 
@@ -188,6 +254,14 @@ async function main() {
             console.log('');
             console.log('✅ Ready for analysis. VTT will be used as transcript source.');
             process.exit(0);
+        }
+
+        // If no VTT available, fall back to video download + Whisper transcription
+        if (!vttDownloaded) {
+            console.log('');
+            console.log('⚠️  No VTT transcript available - will use Whisper API transcription');
+            console.log('   This costs ~$0.006/minute (~$0.30-0.60 per meeting)');
+            console.log('');
         }
 
         // 2. Download MP4 (only if we don't have VTT or not in fast mode)

@@ -50,6 +50,14 @@ async function runStep(scriptPath, args = [], extraEnv = {}) {
     });
 }
 
+// Custom error class for "no VTT available" scenario (skip this video)
+class NoVttAvailableError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'NoVttAvailableError';
+    }
+}
+
 // Custom error class for "no new meetings" scenario
 class NoNewMeetingsError extends Error {
     constructor(message) {
@@ -86,7 +94,11 @@ async function getLatestMeetingId(departmentId = 'town-council') {
         let output = '';
         let stderr = '';
         proc.stdout.on('data', (data) => { output += data.toString(); });
-        proc.stderr.on('data', (data) => { stderr += data.toString(); });
+        proc.stderr.on('data', (data) => {
+            const text = data.toString();
+            stderr += text;
+            process.stderr.write(text); // Forward stderr to console for debugging
+        });
 
         proc.on('close', (code) => {
             if (code === 0) {
@@ -184,18 +196,26 @@ function registerProcessedMeeting(videoId, departmentId) {
             }
         } catch (e) { /* ignore */ }
 
-        // Load transcript for metadata
-        let durationMinutes = 0;
+        // Load meeting metadata (date, title, type) if available
         let meetingDate = new Date().toISOString().split('T')[0];
+        let meetingTitle = null;
+        const metadataPath = path.join(DATA_DIR, `${videoId}_metadata.json`);
+        if (fs.existsSync(metadataPath)) {
+            try {
+                const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'));
+                if (metadata.date) meetingDate = metadata.date;
+                if (metadata.title) meetingTitle = metadata.title;
+                if (metadata.type) departmentName = metadata.type;
+            } catch (e) { /* ignore */ }
+        }
+
+        // Load transcript for duration
+        let durationMinutes = 0;
         const transcriptPath = path.join(DATA_DIR, `${videoId}_transcript.json`);
         if (fs.existsSync(transcriptPath)) {
             try {
                 const transcript = JSON.parse(fs.readFileSync(transcriptPath, 'utf-8'));
                 durationMinutes = transcript.durationMinutes || 0;
-                // Try to extract date from transcript if available
-                if (transcript.transcribedAt) {
-                    meetingDate = transcript.transcribedAt.split('T')[0];
-                }
             } catch (e) { /* ignore */ }
         }
 
@@ -238,16 +258,14 @@ function registerProcessedMeeting(videoId, departmentId) {
 /**
  * Process a single video through the pipeline
  *
- * FAST_MODE (default: true): Skip video download if VTT transcript exists
- * This reduces processing time from ~30 min to ~3 min for most meetings
+ * If VTT transcript exists: Use it (free, instant)
+ * If no VTT: Download video, extract audio, use Whisper API (~$0.006/min)
  */
 async function processVideo(videoId) {
-    const fastMode = process.env.FAST_MODE !== 'false'; // Default to true
+    console.log(`\n⚡ Processing video ${videoId}`);
 
-    console.log(`\n⚡ Processing video ${videoId} (FAST_MODE: ${fastMode ? 'ON' : 'OFF'})`);
-
-    // 1. Download VTT (and optionally video if no VTT)
-    await runStep(DOWNLOADER_SCRIPT, [videoId], { FAST_MODE: String(fastMode) });
+    // 1. Download VTT if available, otherwise download video for Whisper
+    await runStep(DOWNLOADER_SCRIPT, [videoId], { FAST_MODE: 'true' });
 
     // 2. Transcribe - now accepts video ID and auto-detects VTT vs MP4
     const transcriptPath = path.join(DATA_DIR, `${videoId}_transcript.json`);

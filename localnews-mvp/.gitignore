@@ -28,5 +28,8 @@ yarn-error.log*
 
 # Media files
 *.mp4
+
+# Scan state files (should not be deployed - each environment maintains its own state)
+data/last_video_scan.json
 *.mp3
 *.mov

@@ -268,6 +268,9 @@ function App() {
   // Centered result modal (replaces toast for agent results)
   const [resultModal, setResultModal] = useState(null);
 
+  // Confirmation modal for delete actions
+  const [confirmModal, setConfirmModal] = useState(null);
+
   // Track previous running state to detect completion
   const [prevRunning, setPrevRunning] = useState({
     crimeWatch: false,
@@ -475,19 +478,27 @@ function App() {
     }
   }
 
-  async function handleDeleteUpcoming(meetingId) {
-    try {
-      const res = await fetch(`${API_URL}/agents/town-meeting/upcoming/${meetingId}`, {
-        method: 'DELETE'
-      });
-      if (!res.ok) throw new Error('Failed to delete meeting');
+  function handleDeleteUpcoming(meetingId) {
+    setConfirmModal({
+      title: 'Delete Meeting',
+      message: 'Are you sure you want to delete this upcoming meeting? This action cannot be undone.',
+      onConfirm: async () => {
+        setConfirmModal(null);
+        try {
+          const res = await fetch(`${API_URL}/agents/town-meeting/upcoming/${meetingId}`, {
+            method: 'DELETE'
+          });
+          if (!res.ok) throw new Error('Failed to delete meeting');
 
-      addToast('success', 'Meeting Deleted', 'Upcoming meeting removed');
-      fetchUpcomingMeetings();
-    } catch (err) {
-      console.error(err);
-      addToast('error', 'Error', 'Failed to delete meeting');
-    }
+          addToast('success', 'Meeting Deleted', 'Upcoming meeting removed');
+          fetchUpcomingMeetings();
+        } catch (err) {
+          console.error(err);
+          addToast('error', 'Error', 'Failed to delete meeting');
+        }
+      },
+      onCancel: () => setConfirmModal(null)
+    });
   }
 
   async function generateArticleFromIdea(ideaId, angleName, videoId) {
@@ -860,6 +871,15 @@ function App() {
           onClose={() => setResultModal(null)}
         />
       )}
+
+      {confirmModal && (
+        <ConfirmModal
+          title={confirmModal.title}
+          message={confirmModal.message}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={confirmModal.onCancel}
+        />
+      )}
     </div>
   );
 }
@@ -911,6 +931,22 @@ function ResultModal({ result, onClose }) {
         <h2 className="result-modal-title">{result.title}</h2>
         <p className="result-modal-message">{result.message}</p>
         <button className="result-modal-close" onClick={onClose}>Got it</button>
+      </div>
+    </div>
+  );
+}
+
+function ConfirmModal({ title, message, onConfirm, onCancel }) {
+  return (
+    <div className="confirm-modal-overlay" onClick={onCancel}>
+      <div className="confirm-modal" onClick={e => e.stopPropagation()}>
+        <div className="confirm-modal-icon">⚠</div>
+        <h2 className="confirm-modal-title">{title}</h2>
+        <p className="confirm-modal-message">{message}</p>
+        <div className="confirm-modal-actions">
+          <button className="confirm-modal-cancel" onClick={onCancel}>Cancel</button>
+          <button className="confirm-modal-confirm" onClick={onConfirm}>Delete</button>
+        </div>
       </div>
     </div>
   );

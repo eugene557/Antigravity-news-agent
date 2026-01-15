@@ -103,9 +103,16 @@ async function main() {
             ...result
         };
 
-        const finalOutputPath = outputPath || transcriptPath.replace('_transcript.json', '_ideas.json');
-        fs.writeFileSync(finalOutputPath, JSON.stringify(output, null, 2));
-        console.log(`✅ Ideas saved to: ${finalOutputPath}`);
+        // Always save to per-meeting ideas file
+        const meetingIdeasPath = transcriptPath.replace('_transcript.json', '_ideas.json');
+        fs.writeFileSync(meetingIdeasPath, JSON.stringify(output, null, 2));
+        console.log(`✅ Ideas saved to: ${meetingIdeasPath}`);
+
+        // Also save to current_ideas.json if a different output path is specified
+        if (outputPath && outputPath !== meetingIdeasPath) {
+            fs.writeFileSync(outputPath, JSON.stringify(output, null, 2));
+            console.log(`✅ Also saved to: ${outputPath}`);
+        }
 
     } catch (error) {
         console.error('❌ Error:', error.message);

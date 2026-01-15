@@ -116,11 +116,12 @@ async function getLastScanState() {
         console.error(`  Warning: Could not load scan state from API: ${e.message}`);
     }
 
-    // Fallback to local file
+    // Local file is ONLY used if API is completely unavailable
+    // API is the source of truth (persists across deployments, can be reset)
     try {
         if (fs.existsSync(LAST_SCAN_PATH)) {
             const localState = JSON.parse(fs.readFileSync(LAST_SCAN_PATH, 'utf-8'));
-            console.error(`  📂 Loaded scan state from local file: highestScannedId=${localState.highestScannedId}`);
+            console.error(`  📂 Fallback to local file: highestScannedId=${localState.highestScannedId}`);
             return localState;
         }
     } catch (e) { /* ignore */ }

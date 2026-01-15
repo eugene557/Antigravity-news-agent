@@ -940,6 +940,13 @@ app.put('/api/agents/town-meeting/scan-state', async (req, res) => {
 
     const success = await saveScanStateToSheets('video_scanner', state);
 
+    // Also delete local scan file so scripts use API as source of truth
+    const localScanFile = path.join(__dirname, '..', 'data', 'last_video_scan.json');
+    if (fs.existsSync(localScanFile)) {
+      fs.unlinkSync(localScanFile);
+      console.log('Deleted local scan state file (API is source of truth)');
+    }
+
     if (success) {
       console.log(`Scan state saved: highestScannedId=${highestScannedId}`);
       res.json({ success: true, state });

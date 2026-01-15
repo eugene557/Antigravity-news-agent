@@ -705,6 +705,22 @@ function App() {
         </nav>
 
         <div className="sidebar-footer">
+          <button
+            className={`sidebar-trash-btn ${viewSource === 'trash' ? 'active' : ''}`}
+            onClick={() => {
+              setViewSource('trash');
+              setShowSettings(false);
+              setSelectedMeeting(null);
+              setSelectedIdea(null);
+              setSelectedArticle(null);
+            }}
+          >
+            <span className="trash-icon">🗑️</span>
+            <span>Trash</span>
+            {articles.filter(a => a.status === 'discarded').length > 0 && (
+              <span className="trash-count">{articles.filter(a => a.status === 'discarded').length}</span>
+            )}
+          </button>
           <div className="user-info">
             <div className="user-avatar">{user?.name?.charAt(0).toUpperCase() || 'U'}</div>
             <div className="user-details">
@@ -735,15 +751,19 @@ function App() {
       */}
 
       <main className="main-content">
-        {showSettings ? (
+        {viewSource === 'trash' ? (
+          <TrashView
+            discardedArticles={articles.filter(a => a.status === 'discarded')}
+            onRestoreArticle={(id) => updateStatus(id, 'draft')}
+            onDeleteArticle={(id) => updateStatus(id, 'deleted')}
+            onBack={() => setViewSource('town-meeting')}
+          />
+        ) : showSettings ? (
           <SettingsView
             settings={settings}
             user={user}
             onSave={saveSettings}
             onClose={() => setShowSettings(false)}
-            discardedArticles={articles.filter(a => a.status === 'discarded')}
-            onRestoreArticle={(id) => updateStatus(id, 'draft')}
-            onDeleteArticle={(id) => updateStatus(id, 'deleted')}
           />
         ) : selectedMeeting ? (
           <MeetingDetailView
@@ -1198,7 +1218,7 @@ function isThisWeek(dateStr) {
   } catch { return false; }
 }
 
-function SettingsView({ settings, user, onSave, onClose, discardedArticles = [], onRestoreArticle, onDeleteArticle }) {
+function SettingsView({ settings, user, onSave, onClose }) {
   const [localSettings, setLocalSettings] = useState(settings);
   const [selectedDept, setSelectedDept] = useState(0);
   const [activeSection, setActiveSection] = useState('board');
@@ -1253,18 +1273,6 @@ function SettingsView({ settings, user, onSave, onClose, discardedArticles = [],
             >
               <span className="nav-icon">◉</span>
               Departments
-            </button>
-          </div>
-          <div className="settings-nav-footer">
-            <button
-              className={`settings-nav-item trash-nav-item ${activeSection === 'trash' ? 'active' : ''}`}
-              onClick={() => setActiveSection('trash')}
-            >
-              <span className="nav-icon trash-icon">🗑️</span>
-              Trash
-              {discardedArticles.length > 0 && (
-                <span className="trash-badge">{discardedArticles.length}</span>
-              )}
             </button>
           </div>
         </nav>
@@ -1368,59 +1376,60 @@ function SettingsView({ settings, user, onSave, onClose, discardedArticles = [],
             </div>
           )}
 
-          {activeSection === 'trash' && (
-            <div className="settings-page">
-              <div className="settings-page-title">
-                <h1>Trash</h1>
-                <p>Discarded articles that can be restored or permanently deleted</p>
-              </div>
-
-              <div className="settings-card">
-                <div className="settings-card-title">
-                  <h2>Discarded Articles</h2>
-                  <span className="member-count-badge">{discardedArticles.length}</span>
-                </div>
-                <div className="settings-card-body no-padding">
-                  {discardedArticles.length === 0 ? (
-                    <div className="empty-trash">
-                      <span className="empty-trash-icon">🗑️</span>
-                      <p>Trash is empty</p>
-                    </div>
-                  ) : (
-                    <div className="trash-list">
-                      {discardedArticles.map((article) => (
-                        <div key={article.id} className="trash-item">
-                          <div className="trash-item-content">
-                            <h4>{article.headline || 'Untitled Article'}</h4>
-                            <span className="trash-item-date">
-                              Discarded {formatRelativeTime(article.updatedAt || article.createdAt)}
-                            </span>
-                          </div>
-                          <div className="trash-item-actions">
-                            <button
-                              className="btn-restore"
-                              onClick={() => onRestoreArticle(article.id)}
-                              title="Restore to Drafts"
-                            >
-                              ↩ Restore
-                            </button>
-                            <button
-                              className="btn-delete-permanent"
-                              onClick={() => onDeleteArticle(article.id)}
-                              title="Delete permanently"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function TrashView({ discardedArticles, onRestoreArticle, onDeleteArticle, onBack }) {
+  return (
+    <div className="trash-view">
+      <header className="trash-header">
+        <div className="trash-header-left">
+          <button className="btn-back" onClick={onBack}>← Back</button>
+          <h1>🗑️ Trash</h1>
+        </div>
+        <span className="trash-count-header">{discardedArticles.length} item{discardedArticles.length !== 1 ? 's' : ''}</span>
+      </header>
+
+      <div className="trash-content">
+        {discardedArticles.length === 0 ? (
+          <div className="empty-trash-view">
+            <span className="empty-trash-icon-lg">🗑️</span>
+            <h2>Trash is empty</h2>
+            <p>Discarded articles will appear here</p>
+          </div>
+        ) : (
+          <div className="trash-articles-list">
+            {discardedArticles.map((article) => (
+              <div key={article.id} className="trash-article-card">
+                <div className="trash-article-info">
+                  <h3>{article.headline || 'Untitled Article'}</h3>
+                  <p className="trash-article-summary">{article.summary || article.body?.substring(0, 100) || 'No content'}</p>
+                  <span className="trash-article-meta">
+                    {article.agentSource === 'town-meeting' ? 'Town Meeting' : 'Crime Watch'} •
+                    Discarded {formatRelativeTime(article.updatedAt || article.createdAt)}
+                  </span>
+                </div>
+                <div className="trash-article-actions">
+                  <button
+                    className="btn-restore-lg"
+                    onClick={() => onRestoreArticle(article.id)}
+                  >
+                    ↩ Restore
+                  </button>
+                  <button
+                    className="btn-delete-lg"
+                    onClick={() => onDeleteArticle(article.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

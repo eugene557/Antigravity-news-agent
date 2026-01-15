@@ -1032,6 +1032,33 @@ app.get('/api/agents/town-meeting/ideas', (req, res) => {
 });
 
 /**
+ * POST /api/agents/town-meeting/regenerate-ideas
+ * Regenerate ideas for a specific meeting that has a transcript
+ * Body: { videoId }
+ */
+app.post('/api/agents/town-meeting/regenerate-ideas', async (req, res) => {
+  const { videoId } = req.body;
+
+  if (!videoId) {
+    return res.status(400).json({ error: 'videoId is required' });
+  }
+
+  const agentDir = path.join(__dirname, '..', 'agents', 'town-meeting');
+  const dataDir = path.join(__dirname, '..', 'data', 'swagit');
+  const transcriptPath = path.join(dataDir, `${videoId}_transcript.json`);
+
+  if (!fs.existsSync(transcriptPath)) {
+    return res.status(404).json({ error: `Transcript not found for video ${videoId}` });
+  }
+
+  res.json({ status: 'started', message: `Regenerating ideas for video ${videoId}` });
+
+  // Run idea generator in background
+  console.log(`🔄 Regenerating ideas for video ${videoId}...`);
+  runScriptBackground(agentDir, 'generate_ideas.js', [transcriptPath]);
+});
+
+/**
  * POST /api/agents/town-meeting/generate-article
  * Body: { ideaId, angleName, departmentId, videoId }
  */

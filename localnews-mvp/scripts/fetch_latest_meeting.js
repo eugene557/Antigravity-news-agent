@@ -363,19 +363,28 @@ async function getLatestMeetingId() {
         console.error(`Already processed ${processedIds.size} meetings, will skip those...`);
     }
 
-    // Collect ALL unprocessed Jupiter videos from both methods
+    // Get the lowest processed ID to establish a baseline for "last month"
+    // We only want to check videos NEWER than our oldest processed video minus ~5000 IDs
+    // (roughly 1 month of videos across all Swagit municipalities)
+    const highestProcessed = getHighestProcessedVideoId();
+    const oneMonthBuffer = 5000; // ~1 month worth of video IDs across all municipalities
+    const minimumVideoId = Math.max(highestProcessed - oneMonthBuffer, 360000); // Don't go below baseline
+
+    console.error(`Looking for videos from last month (ID >= ${minimumVideoId})...`);
+
+    // Collect unprocessed Jupiter videos from the Swagit view page
     let allUnprocessedVideos = [];
 
-    // METHOD 1: Check videos from the Swagit view page
     const pageVideoIds = await getVideosFromPage();
 
     if (pageVideoIds.length > 0) {
-        // Check ALL videos on the page, not just first 10
-        const maxToCheck = Math.min(pageVideoIds.length, 50);
-        console.error(`Checking ${maxToCheck} videos from page for Jupiter FL content...`);
+        // Only check videos within the last month range
+        const recentPageVideos = pageVideoIds.filter(id => parseInt(id) >= minimumVideoId);
+        const maxToCheck = Math.min(recentPageVideos.length, 30);
+        console.error(`Checking ${maxToCheck} recent videos from page...`);
 
         for (let i = 0; i < maxToCheck; i++) {
-            const videoId = pageVideoIds[i];
+            const videoId = recentPageVideos[i];
 
             if (processedIds.has(videoId)) {
                 continue; // Already processed, skip silently
@@ -389,32 +398,25 @@ async function getLatestMeetingId() {
         }
     }
 
-    // METHOD 2: Also scan by ID to find any videos not on the page
-    const highestProcessed = getHighestProcessedVideoId();
-    const lastScan = await getLastScanState();
+    // If page didn't find anything, do a targeted scan from highest processed
+    if (allUnprocessedVideos.length === 0) {
+        const lastScan = await getLastScanState();
+        let startId = highestProcessed + 1;
 
-    // Start scanning from AFTER highest processed video
-    // This ensures we find all videos newer than what we've processed
-    let startId = highestProcessed + 1;
+        if (lastScan && lastScan.highestScannedId) {
+            const lastScanAge = Date.now() - new Date(lastScan.scannedAt).getTime();
+            const hoursSinceLastScan = lastScanAge / (1000 * 60 * 60);
 
-    // If we have a recent scan, we can skip ahead to save time
-    // But only if we already found videos from the page
-    if (allUnprocessedVideos.length === 0 && lastScan && lastScan.highestScannedId) {
-        const lastScanAge = Date.now() - new Date(lastScan.scannedAt).getTime();
-        const hoursSinceLastScan = lastScanAge / (1000 * 60 * 60);
-
-        if (hoursSinceLastScan < 168) { // 7 days
-            const scanBasedStart = lastScan.highestScannedId - 500;
-            if (scanBasedStart > startId) {
-                startId = scanBasedStart;
-                console.error(`  Using cached scan state: continuing from ~${startId} (last scanned: ${lastScan.highestScannedId})`);
+            if (hoursSinceLastScan < 168) { // 7 days
+                const scanBasedStart = lastScan.highestScannedId - 500;
+                if (scanBasedStart > startId) {
+                    startId = scanBasedStart;
+                    console.error(`  Using cached scan state: continuing from ~${startId}`);
+                }
             }
         }
-    }
 
-    // Only do ID scanning if page didn't find anything
-    if (allUnprocessedVideos.length === 0) {
-        console.error(`\nPage didn't yield new videos. Starting smart scan from ${startId}...`);
+        console.error(`\nPage didn't yield new videos. Scanning from ${startId}...`);
         const newVideos = await scanForNewVideos(startId, processedIds);
         allUnprocessedVideos = allUnprocessedVideos.concat(newVideos);
     }

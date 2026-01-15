@@ -415,8 +415,8 @@ async function getLatestMeetingId() {
     const newVideos = await scanForNewVideos(startId, processedIds);
 
     if (newVideos.length > 0) {
-        // Return the oldest (smallest ID) new video found
-        const sortedVideos = newVideos.sort((a, b) => parseInt(a) - parseInt(b));
+        // Return the NEWEST (highest ID) new video found - most recent meeting first
+        const sortedVideos = newVideos.sort((a, b) => parseInt(b) - parseInt(a));
         console.log(sortedVideos[0]);
         return;
     }

@@ -940,6 +940,65 @@ app.put('/api/agents/town-meeting/meetings/:id', async (req, res) => {
 });
 
 /**
+ * PUT /api/meetings/update-ideas-count
+ * Update a meeting's ideasCount after idea generation completes
+ * Called by generate_ideas.js when running in background
+ */
+app.put('/api/meetings/update-ideas-count', async (req, res) => {
+  try {
+    const { videoId, ideasCount } = req.body;
+
+    if (!videoId) {
+      return res.status(400).json({ error: 'videoId is required' });
+    }
+
+    // Find the meeting by videoId in Google Sheets
+    const existing = await getMeetingsFromSheets();
+    const meeting = existing.find(m => m.videoId === videoId);
+
+    if (!meeting) {
+      console.log(`Meeting with videoId ${videoId} not found in Sheets, checking local file...`);
+
+      // Try to find in local meetings.json and update there
+      const meetingsFile = path.join(__dirname, '..', 'data', 'meetings.json');
+      if (fs.existsSync(meetingsFile)) {
+        let registry = JSON.parse(fs.readFileSync(meetingsFile, 'utf-8'));
+        const index = registry.findIndex(m => m.videoId === videoId);
+        if (index >= 0) {
+          registry[index].ideasCount = ideasCount;
+          fs.writeFileSync(meetingsFile, JSON.stringify(registry, null, 2));
+          console.log(`Updated ideasCount for ${videoId} to ${ideasCount} in local file`);
+          return res.json({ success: true, source: 'local' });
+        }
+      }
+
+      return res.status(404).json({ error: 'Meeting not found' });
+    }
+
+    // Update the meeting in Google Sheets
+    meeting.ideasCount = ideasCount;
+    await saveMeetingToSheets(meeting);
+
+    // Also update local file for consistency
+    const meetingsFile = path.join(__dirname, '..', 'data', 'meetings.json');
+    if (fs.existsSync(meetingsFile)) {
+      let registry = JSON.parse(fs.readFileSync(meetingsFile, 'utf-8'));
+      const index = registry.findIndex(m => m.videoId === videoId);
+      if (index >= 0) {
+        registry[index].ideasCount = ideasCount;
+        fs.writeFileSync(meetingsFile, JSON.stringify(registry, null, 2));
+      }
+    }
+
+    console.log(`Updated ideasCount for ${videoId} to ${ideasCount}`);
+    res.json({ success: true, videoId, ideasCount });
+  } catch (e) {
+    console.error('Error updating ideas count:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
  * GET /api/agents/town-meeting/ideas
  * Query params:
  *   - videoId: Load ideas for a specific meeting (optional)

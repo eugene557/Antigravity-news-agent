@@ -3033,6 +3033,37 @@ body {
   padding: 32px 0;
   flex-shrink: 0;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-nav-footer {
+  margin-top: auto;
+  padding-top: 24px;
+  border-top: 1px solid var(--gray-200);
+}
+
+.settings-nav-item.trash-nav-item {
+  color: var(--gray-500);
+}
+
+.settings-nav-item.trash-nav-item .trash-icon {
+  font-size: 14px;
+}
+
+.settings-nav-item.trash-nav-item .trash-badge {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--gray-200);
+  color: var(--gray-600);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.settings-nav-item.trash-nav-item.active .trash-badge {
+  background: var(--primary);
+  color: var(--white);
 }
 
 .settings-nav-section {

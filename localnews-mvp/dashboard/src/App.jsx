@@ -1201,7 +1201,7 @@ function isThisWeek(dateStr) {
 function SettingsView({ settings, user, onSave, onClose, discardedArticles = [], onRestoreArticle, onDeleteArticle }) {
   const [localSettings, setLocalSettings] = useState(settings);
   const [selectedDept, setSelectedDept] = useState(0);
-  const [activeSection, setActiveSection] = useState('account');
+  const [activeSection, setActiveSection] = useState('board');
 
   if (!localSettings) return <div className="settings-loading">Loading settings...</div>;
 
@@ -1239,16 +1239,6 @@ function SettingsView({ settings, user, onSave, onClose, discardedArticles = [],
       <div className="settings-body">
         <nav className="settings-nav">
           <div className="settings-nav-section">
-            <span className="settings-nav-label">General</span>
-            <button
-              className={`settings-nav-item ${activeSection === 'account' ? 'active' : ''}`}
-              onClick={() => setActiveSection('account')}
-            >
-              <span className="nav-icon">◉</span>
-              Account
-            </button>
-          </div>
-          <div className="settings-nav-section">
             <span className="settings-nav-label">Configuration</span>
             <button
               className={`settings-nav-item ${activeSection === 'board' ? 'active' : ''}`}
@@ -1264,43 +1254,22 @@ function SettingsView({ settings, user, onSave, onClose, discardedArticles = [],
               <span className="nav-icon">◉</span>
               Departments
             </button>
+          </div>
+          <div className="settings-nav-footer">
             <button
-              className={`settings-nav-item ${activeSection === 'trash' ? 'active' : ''}`}
+              className={`settings-nav-item trash-nav-item ${activeSection === 'trash' ? 'active' : ''}`}
               onClick={() => setActiveSection('trash')}
             >
-              <span className="nav-icon">◉</span>
+              <span className="nav-icon trash-icon">🗑️</span>
               Trash
+              {discardedArticles.length > 0 && (
+                <span className="trash-badge">{discardedArticles.length}</span>
+              )}
             </button>
           </div>
         </nav>
 
         <div className="settings-main">
-          {activeSection === 'account' && (
-            <div className="settings-page">
-              <div className="settings-page-title">
-                <h1>Account</h1>
-                <p>Manage your profile and authentication settings</p>
-              </div>
-
-              <div className="settings-card">
-                <div className="settings-card-title">
-                  <h2>Profile</h2>
-                </div>
-                <div className="settings-card-body">
-                  <div className="profile-row">
-                    <div className="profile-avatar-lg">{user?.name?.charAt(0).toUpperCase() || 'U'}</div>
-                    <div className="profile-info">
-                      <h3>{user?.name || 'User'}</h3>
-                      <span>{user?.email || 'user@example.com'}</span>
-                    </div>
-                    <button className="btn-edit-profile">Edit Profile</button>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          )}
-
           {activeSection === 'board' && (
             <div className="settings-page">
               <div className="settings-page-title">

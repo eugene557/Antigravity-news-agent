@@ -10,6 +10,7 @@
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
+import http from 'http';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -20,6 +21,48 @@ import OpenAI from 'openai';
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
+
+// Update meeting's ideasCount via API
+async function updateMeetingIdeasCount(videoId, ideasCount) {
+    const port = process.env.PORT || 8080;
+    const data = JSON.stringify({ videoId, ideasCount });
+
+    return new Promise((resolve) => {
+        const req = http.request({
+            hostname: 'localhost',
+            port: port,
+            path: '/api/meetings/update-ideas-count',
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(data)
+            },
+            timeout: 5000
+        }, (res) => {
+            let body = '';
+            res.on('data', (chunk) => { body += chunk; });
+            res.on('end', () => {
+                if (res.statusCode === 200) {
+                    console.log(`✅ Updated meeting ${videoId} with ${ideasCount} ideas`);
+                } else {
+                    console.error(`⚠️ Failed to update ideas count: ${res.statusCode}`);
+                }
+                resolve();
+            });
+        });
+        req.on('error', (e) => {
+            console.error(`⚠️ Could not update ideas count: ${e.message}`);
+            resolve();
+        });
+        req.on('timeout', () => {
+            req.destroy();
+            console.error(`⚠️ Timeout updating ideas count`);
+            resolve();
+        });
+        req.write(data);
+        req.end();
+    });
+}
 
 async function loadTranscript(transcriptPath) {
     const content = fs.readFileSync(transcriptPath, 'utf-8');
@@ -113,6 +156,10 @@ async function main() {
             fs.writeFileSync(outputPath, JSON.stringify(output, null, 2));
             console.log(`✅ Also saved to: ${outputPath}`);
         }
+
+        // Update the meeting's ideasCount in the database
+        const ideasCount = result.ideas ? result.ideas.length : 0;
+        await updateMeetingIdeasCount(transcript.videoId, ideasCount);
 
     } catch (error) {
         console.error('❌ Error:', error.message);

@@ -251,8 +251,9 @@ function App() {
   const [saving, setSaving] = useState(false);
 
   // Navigation State
-  const [viewSource, setViewSource] = useState('town-meeting'); // Default to Town Hall MVP
-  const [townHallView, setTownHallView] = useState('meetings'); // 'meetings', 'articles', or 'upcoming'
+  const [viewSource, setViewSource] = useState('town-meeting'); // Default to Town Hall News Agent
+  const [townHallView, setTownHallView] = useState('meetings'); // 'meetings', 'articles', 'upcoming', or 'settings'
+  const [townHallExpanded, setTownHallExpanded] = useState(true); // Dropdown expanded state
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
@@ -655,57 +656,67 @@ function App() {
 
         <nav className="nav-menu">
           <div className="nav-section">
-            <h3 className="nav-section-label">Town Hall MVP</h3>
             <button
-              className={`nav-item nav-sub ${!showSettings && viewSource === 'town-meeting' && townHallView === 'meetings' ? 'active' : ''}`}
-              onClick={() => {
-                setViewSource('town-meeting');
-                setTownHallView('meetings');
-                setShowSettings(false);
-                setSelectedMeeting(null);
-                setSelectedIdea(null);
-                setSelectedArticle(null);
-              }}
+              className={`nav-item nav-parent ${viewSource === 'town-meeting' ? 'active' : ''}`}
+              onClick={() => setTownHallExpanded(!townHallExpanded)}
             >
-              Meetings
+              <span className={`nav-arrow ${townHallExpanded ? 'expanded' : ''}`}>▶</span>
+              Town Hall News Agent
             </button>
-            <button
-              className={`nav-item nav-sub ${!showSettings && viewSource === 'town-meeting' && townHallView === 'upcoming' ? 'active' : ''}`}
-              onClick={() => {
-                setViewSource('town-meeting');
-                setTownHallView('upcoming');
-                setShowSettings(false);
-                setSelectedMeeting(null);
-                setSelectedIdea(null);
-                setSelectedArticle(null);
-              }}
-            >
-              Upcoming
-            </button>
-            <button
-              className={`nav-item nav-sub ${!showSettings && viewSource === 'town-meeting' && townHallView === 'articles' ? 'active' : ''}`}
-              onClick={() => {
-                setViewSource('town-meeting');
-                setTownHallView('articles');
-                setShowSettings(false);
-                setSelectedMeeting(null);
-                setSelectedIdea(null);
-                setSelectedArticle(null);
-              }}
-            >
-              Articles <span className="badge">{getCount('town-meeting')}</span>
-            </button>
-            <button
-              className={`nav-item nav-sub ${showSettings ? 'active' : ''}`}
-              onClick={() => {
-                setShowSettings(true);
-                setSelectedMeeting(null);
-                setSelectedIdea(null);
-                setSelectedArticle(null);
-              }}
-            >
-              Settings
-            </button>
+            {townHallExpanded && (
+              <div className="nav-children">
+                <button
+                  className={`nav-item nav-sub ${!showSettings && viewSource === 'town-meeting' && townHallView === 'meetings' ? 'active' : ''}`}
+                  onClick={() => {
+                    setViewSource('town-meeting');
+                    setTownHallView('meetings');
+                    setShowSettings(false);
+                    setSelectedMeeting(null);
+                    setSelectedIdea(null);
+                    setSelectedArticle(null);
+                  }}
+                >
+                  Meetings
+                </button>
+                <button
+                  className={`nav-item nav-sub ${!showSettings && viewSource === 'town-meeting' && townHallView === 'upcoming' ? 'active' : ''}`}
+                  onClick={() => {
+                    setViewSource('town-meeting');
+                    setTownHallView('upcoming');
+                    setShowSettings(false);
+                    setSelectedMeeting(null);
+                    setSelectedIdea(null);
+                    setSelectedArticle(null);
+                  }}
+                >
+                  Upcoming
+                </button>
+                <button
+                  className={`nav-item nav-sub ${!showSettings && viewSource === 'town-meeting' && townHallView === 'articles' ? 'active' : ''}`}
+                  onClick={() => {
+                    setViewSource('town-meeting');
+                    setTownHallView('articles');
+                    setShowSettings(false);
+                    setSelectedMeeting(null);
+                    setSelectedIdea(null);
+                    setSelectedArticle(null);
+                  }}
+                >
+                  Articles <span className="badge">{getCount('town-meeting')}</span>
+                </button>
+                <button
+                  className={`nav-item nav-sub ${showSettings ? 'active' : ''}`}
+                  onClick={() => {
+                    setShowSettings(true);
+                    setSelectedMeeting(null);
+                    setSelectedIdea(null);
+                    setSelectedArticle(null);
+                  }}
+                >
+                  Settings
+                </button>
+              </div>
+            )}
           </div>
         </nav>
 
@@ -785,8 +796,11 @@ function App() {
                   department={settings?.departments.find(d => d.id === selectedDeptId)}
                   ideas={ideas.ideas}
                   meetings={meetings}
+                  upcomingMeetings={upcomingMeetings}
+                  departments={settings?.departments}
                   onSelectMeeting={setSelectedMeeting}
                   onAddMeeting={() => setShowAddMeetingModal(true)}
+                  onDeleteMeeting={handleDeleteUpcoming}
                 />
               ) : viewSource === 'town-meeting' && townHallView === 'upcoming' ? (
                 <UpcomingMeetingsView
@@ -1799,7 +1813,14 @@ function UpcomingMeetingsView({ meetings, departments, viewMode, onViewModeChang
   );
 }
 
-function MeetingListView({ department, ideas, meetings, onSelectMeeting, onAddMeeting }) {
+function MeetingListView({ department, ideas, meetings, upcomingMeetings, departments, onSelectMeeting, onAddMeeting, onDeleteMeeting }) {
+  // Calendar state for upcoming section
+  const today = new Date();
+  const [currentMonth, setCurrentMonth] = useState({
+    year: today.getFullYear(),
+    month: today.getMonth() + 1
+  });
+
   // Format date for display
   const formatDate = (dateStr) => {
     if (!dateStr) return { month: '---', day: '--' };
@@ -1811,13 +1832,7 @@ function MeetingListView({ department, ideas, meetings, onSelectMeeting, onAddMe
 
   // Enrich meetings with ideas data
   const enrichedMeetings = meetings.map(meeting => {
-    // Check if current ideas belong to this meeting
-    const meetingIdeas = ideas.filter(() => {
-      // For now, ideas are associated with the most recent meeting
-      return meeting.ideasCount > 0;
-    });
-
-    // Format date for display in name
+    const meetingIdeas = ideas.filter(() => meeting.ideasCount > 0);
     const dateToUse = meeting.date || meeting.processedAt;
     const dateForName = dateToUse
       ? new Date(dateToUse + (meeting.date ? 'T12:00:00' : '')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -1827,64 +1842,191 @@ function MeetingListView({ department, ideas, meetings, onSelectMeeting, onAddMe
       ...meeting,
       name: `${meeting.type || department?.name || 'Meeting'} - ${dateForName}`,
       date: formatDate(dateToUse + (meeting.date ? 'T12:00:00' : '')),
+      rawDate: dateToUse,
       dateStr: dateForName,
       ideas: meeting.ideasCount > 0 ? ideas : []
     };
   });
 
+  // Sort meetings chronologically - latest first
+  const sortedMeetings = [...enrichedMeetings].sort((a, b) => {
+    const dateA = a.rawDate ? new Date(a.rawDate) : new Date(0);
+    const dateB = b.rawDate ? new Date(b.rawDate) : new Date(0);
+    return dateB - dateA;
+  });
+
+  // Calendar helpers for upcoming section
+  const getDeptName = (deptId) => {
+    const dept = departments?.find(d => d.id === deptId);
+    return dept?.name || deptId || 'Meeting';
+  };
+
+  const enrichedUpcoming = (upcomingMeetings || []).map(meeting => ({
+    ...meeting,
+    name: getDeptName(meeting.departmentId)
+  }));
+
+  const goToPrevMonth = () => {
+    setCurrentMonth(prev => prev.month === 1 ? { year: prev.year - 1, month: 12 } : { ...prev, month: prev.month - 1 });
+  };
+
+  const goToNextMonth = () => {
+    setCurrentMonth(prev => prev.month === 12 ? { year: prev.year + 1, month: 1 } : { ...prev, month: prev.month + 1 });
+  };
+
+  const goToToday = () => {
+    setCurrentMonth({ year: today.getFullYear(), month: today.getMonth() + 1 });
+  };
+
+  const generateCalendarDays = (year, month) => {
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+    const daysInMonth = lastDay.getDate();
+    const startPadding = firstDay.getDay();
+    const endPadding = (7 - ((startPadding + daysInMonth) % 7)) % 7;
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    const days = [];
+    for (let i = 0; i < startPadding; i++) {
+      days.push({ day: null, meetings: [], isOtherMonth: true });
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const dayMeetings = enrichedUpcoming.filter(m => m.date === dateStr);
+      days.push({ day: d, meetings: dayMeetings, date: dateStr, isToday: dateStr === todayStr });
+    }
+    for (let i = 0; i < endPadding; i++) {
+      days.push({ day: null, meetings: [], isOtherMonth: true });
+    }
+    return days;
+  };
+
+  const getMonthName = (year, month) => {
+    return new Date(year, month - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  };
+
   return (
     <>
-      <div className="meetings-tabs">
-        <button className="meetings-tab active">
-          Meetings
-          <span className="tab-count">{enrichedMeetings.length}</span>
-        </button>
-        <button className="btn-add-meeting-sm" onClick={onAddMeeting}>
-          + Add Meeting
-        </button>
-      </div>
+      {/* Processed Meetings Section */}
+      <div className="meetings-section">
+        <div className="meetings-tabs">
+          <button className="meetings-tab active">
+            Processed Meetings
+            <span className="tab-count">{sortedMeetings.length}</span>
+          </button>
+        </div>
 
-      <div className="meetings-list">
-        {enrichedMeetings.length === 0 ? (
-          <div className="empty-state">
-            <h3>No meetings processed yet</h3>
-            <p>Select a department and run the Meeting Agent to process videos.</p>
-          </div>
-        ) : (
-          enrichedMeetings.map(meeting => (
-            <div
-              key={meeting.id}
-              className={`meeting-row clickable ${meeting.status}`}
-              onClick={() => onSelectMeeting(meeting)}
-            >
-              <div className="meeting-row-main">
-                <div className="meeting-row-left">
-                  <div className="meeting-date-block">
-                    <span className="date-month">{meeting.date.month}</span>
-                    <span className="date-day">{meeting.date.day}</span>
-                  </div>
-                  <div className="meeting-row-info">
-                    <h4>{meeting.name}</h4>
-                    <div className="meeting-stats">
-                      {meeting.ideasCount > 0 && (
-                        <span className="stat-item ideas">{meeting.ideasCount} ideas</span>
-                      )}
-                      {meeting.articlesGenerated > 0 && (
-                        <span className="stat-item articles">{meeting.articlesGenerated} articles</span>
-                      )}
-                      <span className={`stat-item status-${meeting.status}`}>
-                        {meeting.status === 'processed' ? 'Ready' :
-                          meeting.status === 'analyzed' ? 'Analyzed' :
-                            meeting.status === 'transcribed' ? 'Transcribed' : 'Downloading'}
-                      </span>
+        <div className="meetings-list">
+          {sortedMeetings.length === 0 ? (
+            <div className="empty-state">
+              <h3>No meetings processed yet</h3>
+              <p>Run the Meeting Agent to process videos.</p>
+            </div>
+          ) : (
+            sortedMeetings.map(meeting => (
+              <div
+                key={meeting.id}
+                className={`meeting-row clickable ${meeting.status}`}
+                onClick={() => onSelectMeeting(meeting)}
+              >
+                <div className="meeting-row-main">
+                  <div className="meeting-row-left">
+                    <div className="meeting-date-block">
+                      <span className="date-month">{meeting.date.month}</span>
+                      <span className="date-day">{meeting.date.day}</span>
+                    </div>
+                    <div className="meeting-row-info">
+                      <h4>{meeting.name}</h4>
+                      <div className="meeting-stats">
+                        {meeting.ideasCount > 0 && (
+                          <span className="stat-item ideas">{meeting.ideasCount} ideas</span>
+                        )}
+                        {meeting.articlesGenerated > 0 && (
+                          <span className="stat-item articles">{meeting.articlesGenerated} articles</span>
+                        )}
+                        <span className={`stat-item status-${meeting.status}`}>
+                          {meeting.status === 'processed' ? 'Ready' :
+                            meeting.status === 'analyzed' ? 'Analyzed' :
+                              meeting.status === 'transcribed' ? 'Transcribed' : 'Downloading'}
+                        </span>
+                      </div>
                     </div>
                   </div>
+                  <span className="view-arrow">→</span>
                 </div>
-                <span className="view-arrow">→</span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Upcoming Meetings Calendar Section */}
+      <div className="upcoming-section">
+        <div className="meetings-tabs">
+          <button className="meetings-tab active">
+            Upcoming Meetings
+            <span className="tab-count">{enrichedUpcoming.length}</span>
+          </button>
+          <button className="btn-add-meeting-sm" onClick={onAddMeeting}>
+            + Add
+          </button>
+        </div>
+
+        <div className="upcoming-calendar compact">
+          <div className="calendar-container">
+            <div className="calendar-nav">
+              <div className="calendar-nav-left">
+                <button className="calendar-nav-btn" onClick={goToPrevMonth}>‹</button>
+                <h3 className="calendar-month-title">{getMonthName(currentMonth.year, currentMonth.month)}</h3>
+                <button className="calendar-nav-btn" onClick={goToNextMonth}>›</button>
+              </div>
+              <button className="calendar-today-btn" onClick={goToToday}>Today</button>
+            </div>
+
+            <div className="calendar-table">
+              <div className="calendar-weekdays">
+                <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+              </div>
+              <div className="calendar-grid">
+                {generateCalendarDays(currentMonth.year, currentMonth.month).map((dayInfo, idx) => (
+                  <div
+                    key={idx}
+                    className={`calendar-day ${dayInfo.isOtherMonth ? 'empty' : ''} ${dayInfo.meetings.length > 0 ? 'has-meeting' : ''} ${dayInfo.isToday ? 'is-today' : ''}`}
+                  >
+                    {dayInfo.day && (
+                      <>
+                        <span className="calendar-day-num">{dayInfo.day}</span>
+                        {dayInfo.meetings.length > 0 && (
+                          <div className="calendar-day-meetings">
+                            {dayInfo.meetings.map(m => (
+                              <div key={m.id} className="calendar-meeting-chip" title={m.name}>
+                                <span className="chip-dot"></span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
-          ))
-        )}
+
+            {enrichedUpcoming.length > 0 && (
+              <div className="upcoming-list-mini">
+                {enrichedUpcoming.slice(0, 5).map(meeting => (
+                  <div key={meeting.id} className="upcoming-mini-row">
+                    <span className="upcoming-mini-date">
+                      {new Date(meeting.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                    <span className="upcoming-mini-name">{meeting.name}</span>
+                    <button className="btn-delete-mini" onClick={() => onDeleteMeeting(meeting.id)} title="Remove">×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </>
   );

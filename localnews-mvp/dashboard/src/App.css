@@ -2260,6 +2260,49 @@ body {
    UI RESTRUCTURE (MEETING-CENTRIC)
    ============================================ */
 
+/* Collapsible Navigation */
+.nav-item.nav-parent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  margin: 12px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-300);
+  background: var(--gray-800);
+  border: 1px solid var(--gray-700);
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  width: calc(100% - 32px);
+}
+
+.nav-item.nav-parent:hover {
+  background: var(--gray-700);
+  color: var(--white);
+}
+
+.nav-item.nav-parent.active {
+  color: var(--white);
+  background: var(--gray-800);
+}
+
+.nav-arrow {
+  font-size: 8px;
+  transition: transform 0.15s ease;
+  color: var(--gray-500);
+  flex-shrink: 0;
+}
+
+.nav-arrow.expanded {
+  transform: rotate(90deg);
+}
+
+.nav-children {
+  overflow: hidden;
+  margin-top: 4px;
+}
+
 .nav-section-label {
   font-size: 10px;
   text-transform: uppercase;
@@ -2271,8 +2314,109 @@ body {
 }
 
 .nav-item.nav-sub {
-  padding-left: 36px;
+  padding: 12px 24px 12px 44px;
   font-size: 13px;
+  color: var(--gray-400);
+  border-left: none;
+  margin-left: 0;
+}
+
+.nav-item.nav-sub:hover {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.nav-item.nav-sub.active {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.05);
+  border-left: 2px solid var(--primary);
+  padding-left: 42px;
+}
+
+/* Meetings and Upcoming Sections */
+.meetings-section {
+  margin-bottom: 32px;
+}
+
+.upcoming-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--gray-200);
+}
+
+.upcoming-calendar.compact {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.upcoming-calendar.compact .calendar-nav {
+  margin-bottom: 12px;
+}
+
+.upcoming-calendar.compact .calendar-month-title {
+  font-size: 14px;
+}
+
+.upcoming-calendar.compact .calendar-day {
+  padding: 4px;
+  min-height: 36px;
+}
+
+.upcoming-calendar.compact .calendar-day-num {
+  font-size: 12px;
+}
+
+.upcoming-calendar.compact .calendar-weekdays span {
+  font-size: 10px;
+}
+
+.upcoming-list-mini {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--gray-200);
+}
+
+.upcoming-mini-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.upcoming-mini-row:last-child {
+  border-bottom: none;
+}
+
+.upcoming-mini-date {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-600);
+  min-width: 60px;
+}
+
+.upcoming-mini-name {
+  flex: 1;
+  font-size: 13px;
+  color: var(--black);
+}
+
+.btn-delete-mini {
+  background: none;
+  border: none;
+  color: var(--gray-400);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.btn-delete-mini:hover {
+  background: var(--error);
+  color: var(--white);
 }
 
 .town-hall-nav {

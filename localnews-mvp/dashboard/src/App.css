@@ -174,49 +174,43 @@ body {
 .sidebar-trash-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 12px 16px;
-  margin-bottom: 16px;
+  gap: 8px;
+  width: auto;
+  padding: 6px 12px;
+  margin-bottom: 12px;
   background: transparent;
-  border: 1px solid var(--gray-700);
-  border-radius: 6px;
-  color: var(--gray-400);
-  font-size: 13px;
-  font-weight: 500;
+  border: none;
+  border-radius: 4px;
+  color: var(--gray-500);
+  font-size: 12px;
+  font-weight: 400;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .sidebar-trash-btn:hover {
   background: var(--gray-800);
-  color: var(--white);
-  border-color: var(--gray-600);
+  color: var(--gray-300);
 }
 
 .sidebar-trash-btn.active {
-  background: rgba(196, 30, 58, 0.15);
-  border-color: var(--primary);
+  background: var(--gray-800);
   color: var(--white);
-}
-
-.sidebar-trash-btn .trash-icon {
-  font-size: 16px;
 }
 
 .sidebar-trash-btn .trash-count {
-  margin-left: auto;
+  margin-left: 4px;
   background: var(--gray-700);
-  color: var(--gray-300);
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 600;
+  color: var(--gray-400);
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 500;
 }
 
 .sidebar-trash-btn.active .trash-count {
-  background: var(--primary);
-  color: var(--white);
+  background: var(--gray-600);
+  color: var(--gray-200);
 }
 
 .sidebar-footer-actions {

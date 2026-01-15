@@ -715,7 +715,6 @@ function App() {
               setSelectedArticle(null);
             }}
           >
-            <span className="trash-icon">🗑️</span>
             <span>Trash</span>
             {articles.filter(a => a.status === 'discarded').length > 0 && (
               <span className="trash-count">{articles.filter(a => a.status === 'discarded').length}</span>
@@ -1388,7 +1387,7 @@ function TrashView({ discardedArticles, onRestoreArticle, onDeleteArticle, onBac
       <header className="trash-header">
         <div className="trash-header-left">
           <button className="btn-back" onClick={onBack}>← Back</button>
-          <h1>🗑️ Trash</h1>
+          <h1>Trash</h1>
         </div>
         <span className="trash-count-header">{discardedArticles.length} item{discardedArticles.length !== 1 ? 's' : ''}</span>
       </header>
@@ -1396,7 +1395,6 @@ function TrashView({ discardedArticles, onRestoreArticle, onDeleteArticle, onBac
       <div className="trash-content">
         {discardedArticles.length === 0 ? (
           <div className="empty-trash-view">
-            <span className="empty-trash-icon-lg">🗑️</span>
             <h2>Trash is empty</h2>
             <p>Discarded articles will appear here</p>
           </div>

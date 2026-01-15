@@ -363,46 +363,48 @@ async function getLatestMeetingId() {
         console.error(`Already processed ${processedIds.size} meetings, will skip those...`);
     }
 
-    // METHOD 1: Try page scraping first
+    // Collect ALL unprocessed Jupiter videos from both methods
+    let allUnprocessedVideos = [];
+
+    // METHOD 1: Check videos from the Swagit view page
     const pageVideoIds = await getVideosFromPage();
 
     if (pageVideoIds.length > 0) {
-        const maxToCheck = Math.min(pageVideoIds.length, 10);
+        // Check ALL videos on the page, not just first 10
+        const maxToCheck = Math.min(pageVideoIds.length, 50);
         console.error(`Checking ${maxToCheck} videos from page for Jupiter FL content...`);
 
         for (let i = 0; i < maxToCheck; i++) {
             const videoId = pageVideoIds[i];
 
             if (processedIds.has(videoId)) {
-                console.error(`  Skipping ${videoId} (already processed)`);
-                continue;
+                continue; // Already processed, skip silently
             }
 
             const result = await checkVideoOwnership(videoId);
             if (result.isJupiter) {
-                console.log(videoId);
-                return;
+                console.error(`  ✓ Found unprocessed Jupiter video: ${videoId}`);
+                allUnprocessedVideos.push(videoId);
             }
         }
     }
 
-    // METHOD 2: Fallback to smart ID scanning
+    // METHOD 2: Also scan by ID to find any videos not on the page
     const highestProcessed = getHighestProcessedVideoId();
     const lastScan = await getLastScanState();
 
-    // Smart start point: use the HIGHEST of:
-    // 1. Last processed video ID + 1
-    // 2. Last scan's highest SCANNED ID (not just valid) - this is key!
-    // This ensures we don't re-scan old ranges after deployments
+    // Start scanning from AFTER highest processed video
+    // This ensures we find all videos newer than what we've processed
     let startId = highestProcessed + 1;
 
-    if (lastScan && lastScan.highestScannedId) {
+    // If we have a recent scan, we can skip ahead to save time
+    // But only if we already found videos from the page
+    if (allUnprocessedVideos.length === 0 && lastScan && lastScan.highestScannedId) {
         const lastScanAge = Date.now() - new Date(lastScan.scannedAt).getTime();
         const hoursSinceLastScan = lastScanAge / (1000 * 60 * 60);
 
-        // If last scan was within 7 days, start from where we left off
         if (hoursSinceLastScan < 168) { // 7 days
-            const scanBasedStart = lastScan.highestScannedId - 500; // Go back 500 to catch any we might have missed
+            const scanBasedStart = lastScan.highestScannedId - 500;
             if (scanBasedStart > startId) {
                 startId = scanBasedStart;
                 console.error(`  Using cached scan state: continuing from ~${startId} (last scanned: ${lastScan.highestScannedId})`);
@@ -410,13 +412,18 @@ async function getLatestMeetingId() {
         }
     }
 
-    console.error(`\nPage didn't yield new videos. Starting smart scan from ${startId}...`);
+    // Only do ID scanning if page didn't find anything
+    if (allUnprocessedVideos.length === 0) {
+        console.error(`\nPage didn't yield new videos. Starting smart scan from ${startId}...`);
+        const newVideos = await scanForNewVideos(startId, processedIds);
+        allUnprocessedVideos = allUnprocessedVideos.concat(newVideos);
+    }
 
-    const newVideos = await scanForNewVideos(startId, processedIds);
-
-    if (newVideos.length > 0) {
-        // Return the NEWEST (highest ID) new video found - most recent meeting first
-        const sortedVideos = newVideos.sort((a, b) => parseInt(b) - parseInt(a));
+    if (allUnprocessedVideos.length > 0) {
+        // Return the OLDEST (smallest ID) unprocessed video - process in order
+        const sortedVideos = [...new Set(allUnprocessedVideos)].sort((a, b) => parseInt(a) - parseInt(b));
+        console.error(`\nFound ${sortedVideos.length} unprocessed Jupiter video(s): ${sortedVideos.join(', ')}`);
+        console.error(`Processing oldest first: ${sortedVideos[0]}`);
         console.log(sortedVideos[0]);
         return;
     }

@@ -254,7 +254,12 @@ function App() {
   const [viewSource, setViewSource] = useState('town-meeting'); // Default to Town Hall News Agent
   const [townHallView, setTownHallView] = useState('meetings'); // 'meetings', 'articles', 'upcoming', or 'settings'
   const [townHallExpanded, setTownHallExpanded] = useState(true); // Dropdown expanded state
+  const [crimeWatchExpanded, setCrimeWatchExpanded] = useState(false); // Crime Watch dropdown
+  const [crimeWatchView, setCrimeWatchView] = useState('incidents'); // 'incidents', 'articles', or 'settings'
+  const [crimeIncidents, setCrimeIncidents] = useState([]);
+  const [crimeSettings, setCrimeSettings] = useState(null);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
+  const [selectedIncident, setSelectedIncident] = useState(null);
   const [filterStatus, setFilterStatus] = useState('draft');
   const [sortBy, setSortBy] = useState('newest');
 
@@ -318,11 +323,14 @@ function App() {
       fetchIdeas();
       fetchMeetings();
       fetchUpcomingMeetings();
+      fetchCrimeIncidents();
+      fetchCrimeSettings();
       const interval = setInterval(() => {
         fetchAgentStatus();
         fetchIdeas();
         fetchMeetings();
         fetchUpcomingMeetings();
+        fetchCrimeIncidents();
       }, 5000);
       return () => clearInterval(interval);
     } else {
@@ -458,6 +466,42 @@ function App() {
       setUpcomingMeetings(data.upcoming || []);
     } catch (err) {
       console.error('Failed to fetch upcoming meetings:', err);
+    }
+  }
+
+  async function fetchCrimeIncidents() {
+    try {
+      const res = await fetch(`${API_URL}/agents/crime-watch/incidents`);
+      const data = await res.json();
+      setCrimeIncidents(data.incidents || []);
+    } catch (err) {
+      console.error('Failed to fetch crime incidents:', err);
+    }
+  }
+
+  async function fetchCrimeSettings() {
+    try {
+      const res = await fetch(`${API_URL}/settings/crime-watch`);
+      if (res.ok) {
+        const data = await res.json();
+        setCrimeSettings(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch crime settings:', err);
+    }
+  }
+
+  async function saveCrimeSettings(newSettings) {
+    try {
+      await fetch(`${API_URL}/settings/crime-watch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSettings)
+      });
+      setCrimeSettings(newSettings);
+      addToast('success', 'Settings', 'Crime Watch settings saved successfully');
+    } catch (err) {
+      addToast('error', 'Settings', 'Failed to save settings');
     }
   }
 
@@ -702,6 +746,61 @@ function App() {
               </div>
             )}
           </div>
+
+          <div className="nav-section">
+            <button
+              className={`nav-item nav-parent ${crimeWatchExpanded ? 'expanded' : ''}`}
+              onClick={() => setCrimeWatchExpanded(!crimeWatchExpanded)}
+            >
+              <span className="nav-parent-text">Crime Watch Agent</span>
+              <span className={`nav-arrow ${crimeWatchExpanded ? 'expanded' : ''}`}>▶</span>
+            </button>
+            {crimeWatchExpanded && (
+              <div className="nav-children">
+                <button
+                  className={`nav-item nav-sub ${viewSource === 'crime-watch' && crimeWatchView === 'incidents' ? 'active' : ''}`}
+                  onClick={() => {
+                    setViewSource('crime-watch');
+                    setCrimeWatchView('incidents');
+                    setShowSettings(false);
+                    setSelectedMeeting(null);
+                    setSelectedIncident(null);
+                    setSelectedIdea(null);
+                    setSelectedArticle(null);
+                  }}
+                >
+                  Incidents
+                </button>
+                <button
+                  className={`nav-item nav-sub ${viewSource === 'crime-watch' && crimeWatchView === 'articles' ? 'active' : ''}`}
+                  onClick={() => {
+                    setViewSource('crime-watch');
+                    setCrimeWatchView('articles');
+                    setShowSettings(false);
+                    setSelectedMeeting(null);
+                    setSelectedIncident(null);
+                    setSelectedIdea(null);
+                    setSelectedArticle(null);
+                  }}
+                >
+                  Articles <span className="badge">{getCount('crime-watch')}</span>
+                </button>
+                <button
+                  className={`nav-item nav-sub ${viewSource === 'crime-watch' && crimeWatchView === 'settings' ? 'active' : ''}`}
+                  onClick={() => {
+                    setViewSource('crime-watch');
+                    setCrimeWatchView('settings');
+                    setSelectedMeeting(null);
+                    setSelectedIncident(null);
+                    setSelectedIdea(null);
+                    setSelectedArticle(null);
+                  }}
+                >
+                  Settings
+                </button>
+              </div>
+            )}
+          </div>
         </nav>
 
         <div className="sidebar-footer">
@@ -777,22 +876,60 @@ function App() {
             onGenerate={generateArticleFromIdea}
             onClose={() => setSelectedIdea(null)}
           />
+        ) : viewSource === 'crime-watch' && crimeWatchView === 'settings' ? (
+          <CrimeWatchSettingsView
+            settings={crimeSettings}
+            onSave={saveCrimeSettings}
+          />
+        ) : viewSource === 'crime-watch' && crimeWatchView === 'incidents' ? (
+          <>
+            <header className="feed-header">
+              <div className="feed-title-row">
+                <div className="feed-title-block">
+                  <h2>Crime Incidents</h2>
+                </div>
+                <div className="feed-actions">
+                  <AgentControl
+                    name="Crime Agent"
+                    status={agentStatus.crimeWatch}
+                    onRun={() => runAgent('crime-watch')}
+                  />
+                </div>
+              </div>
+            </header>
+            <div className="feed-content">
+              <CrimeIncidentListView
+                incidents={crimeIncidents}
+                onSelectIncident={setSelectedIncident}
+              />
+            </div>
+          </>
         ) : !selectedArticle ? (
           <>
             <header className="feed-header">
               <div className="feed-title-row">
                 <div className="feed-title-block">
                   <h2>
-                    {townHallView === 'meetings' && 'Meetings'}
-                    {townHallView === 'articles' && 'Articles'}
+                    {viewSource === 'town-meeting' && townHallView === 'meetings' && 'Meetings'}
+                    {viewSource === 'town-meeting' && townHallView === 'articles' && 'Town Hall Articles'}
+                    {viewSource === 'crime-watch' && crimeWatchView === 'articles' && 'Crime Watch Articles'}
                   </h2>
                 </div>
                 <div className="feed-actions">
-                  <AgentControl
-                    name="Meeting Agent"
-                    status={agentStatus.townMeeting}
-                    onRun={() => runAgent('town-meeting')}
-                  />
+                  {viewSource === 'town-meeting' && (
+                    <AgentControl
+                      name="Meeting Agent"
+                      status={agentStatus.townMeeting}
+                      onRun={() => runAgent('town-meeting')}
+                    />
+                  )}
+                  {viewSource === 'crime-watch' && (
+                    <AgentControl
+                      name="Crime Agent"
+                      status={agentStatus.crimeWatch}
+                      onRun={() => runAgent('crime-watch')}
+                    />
+                  )}
                 </div>
               </div>
             </header>
@@ -811,19 +948,19 @@ function App() {
               ) : (
                 <>
                   <div className="hero-metrics">
-                    <MetricCard label="Total Items" value={metrics.total} />
-                    <MetricCard label="Drafts Pending" value={metrics.drafts} highlight={metrics.drafts > 0} />
-                    <MetricCard label="Ready to Publish" value={metrics.ready} type="success" />
-                    <MetricCard label="This Week" value={articles.filter(a => isThisWeek(a.date)).length} highlight={true} labelSmall="New" />
+                    <MetricCard label="Total Items" value={filteredArticles.length} />
+                    <MetricCard label="Drafts Pending" value={articles.filter(a => a.agentSource === viewSource && a.status === 'draft').length} highlight={true} />
+                    <MetricCard label="Ready to Publish" value={articles.filter(a => a.agentSource === viewSource && a.status === 'approved').length} type="success" />
+                    <MetricCard label="This Week" value={articles.filter(a => a.agentSource === viewSource && isThisWeek(a.date)).length} highlight={true} labelSmall="New" />
                   </div>
 
                   <div className="filter-bar">
                     <div className="filter-tabs">
                       <button className={`tab ${filterStatus === 'draft' ? 'active' : ''}`} onClick={() => setFilterStatus('draft')}>
-                        Drafts <span className="tab-count draft">{metrics.drafts}</span>
+                        Drafts <span className="tab-count draft">{articles.filter(a => a.agentSource === viewSource && a.status === 'draft').length}</span>
                       </button>
                       <button className={`tab ${filterStatus === 'approved' ? 'active' : ''}`} onClick={() => setFilterStatus('approved')}>
-                        Approved <span className="tab-count approved">{metrics.ready}</span>
+                        Approved <span className="tab-count approved">{articles.filter(a => a.agentSource === viewSource && a.status === 'approved').length}</span>
                       </button>
                     </div>
                   </div>
@@ -1379,6 +1516,177 @@ function SettingsView({ settings, user, onSave, onClose }) {
       </div>
     </div>
   );
+}
+
+// Crime Watch Settings View
+function CrimeWatchSettingsView({ settings, onSave }) {
+  const [localSettings, setLocalSettings] = useState(settings || {
+    daysToFetch: 30,
+    newsworthyCrimes: ['Assault', 'Robbery', 'Burglary', 'Motor Vehicle Theft', 'Arson', 'Homicide'],
+    skipCrimes: ['Vandalism', 'Trespassing', 'Disturbing the Peace'],
+    autoRun: false
+  });
+
+  const handleSave = () => {
+    onSave(localSettings);
+  };
+
+  return (
+    <div className="settings-layout">
+      <header className="settings-page-header">
+        <div className="settings-header-left">
+          <h1>Crime Watch Settings</h1>
+        </div>
+        <div className="settings-header-right">
+          <button className="btn-save-settings" onClick={handleSave}>Save Changes</button>
+        </div>
+      </header>
+
+      <div className="settings-body">
+        <div className="settings-main" style={{ marginLeft: 0 }}>
+          <div className="settings-page">
+            <div className="settings-page-title">
+              <h1>Data Source</h1>
+              <p>Configure how crime data is fetched from LexisNexis Community Crime Map</p>
+            </div>
+
+            <div className="settings-card">
+              <div className="settings-card-title">
+                <h2>Fetch Settings</h2>
+              </div>
+              <div className="settings-card-body">
+                <div className="settings-row">
+                  <label>Days to fetch</label>
+                  <input
+                    type="number"
+                    value={localSettings.daysToFetch}
+                    onChange={(e) => setLocalSettings({ ...localSettings, daysToFetch: parseInt(e.target.value) || 30 })}
+                    min="1"
+                    max="90"
+                    style={{ width: '100px' }}
+                  />
+                  <span className="settings-hint">How many days of incident history to fetch (1-90)</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="settings-card">
+              <div className="settings-card-title">
+                <h2>Location</h2>
+              </div>
+              <div className="settings-card-body">
+                <div className="settings-info-row">
+                  <span className="settings-label">Coverage Area</span>
+                  <span className="settings-value">Jupiter, FL (26.9342, -80.0942)</span>
+                </div>
+                <div className="settings-info-row">
+                  <span className="settings-label">Data Source</span>
+                  <span className="settings-value">LexisNexis Community Crime Map</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="settings-card">
+              <div className="settings-card-title">
+                <h2>Newsworthy Crime Types</h2>
+              </div>
+              <div className="settings-card-body">
+                <p className="settings-description">These crime types will be flagged for article generation:</p>
+                <div className="crime-types-grid">
+                  {['Assault', 'Aggravated Assault', 'Robbery', 'Burglary', 'Motor Vehicle Theft', 'Arson', 'Homicide', 'Kidnapping', 'Weapons Violation', 'Sexual Assault'].map(crime => (
+                    <label key={crime} className="crime-type-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={localSettings.newsworthyCrimes?.includes(crime) ?? true}
+                        onChange={(e) => {
+                          const crimes = localSettings.newsworthyCrimes || [];
+                          if (e.target.checked) {
+                            setLocalSettings({ ...localSettings, newsworthyCrimes: [...crimes, crime] });
+                          } else {
+                            setLocalSettings({ ...localSettings, newsworthyCrimes: crimes.filter(c => c !== crime) });
+                          }
+                        }}
+                      />
+                      {crime}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Crime Incident List View
+function CrimeIncidentListView({ incidents, onSelectIncident }) {
+  if (!incidents || incidents.length === 0) {
+    return (
+      <div className="empty-state">
+        <span className="empty-icon">🚔</span>
+        <h3>No crime incidents</h3>
+        <p>Click "Run Agent" to fetch recent crime data from Jupiter, FL</p>
+      </div>
+    );
+  }
+
+  // Group incidents by date
+  const groupedByDate = incidents.reduce((acc, incident) => {
+    const date = new Date(incident.dateTime).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(incident);
+    return acc;
+  }, {});
+
+  return (
+    <div className="incidents-list">
+      {Object.entries(groupedByDate).map(([date, dateIncidents]) => (
+        <div key={date} className="incidents-date-group">
+          <h3 className="incidents-date-header">{date}</h3>
+          <div className="incidents-grid">
+            {dateIncidents.map((incident) => (
+              <div
+                key={incident.id || incident.referenceId}
+                className="incident-card"
+                onClick={() => onSelectIncident?.(incident)}
+              >
+                <div className="incident-type">
+                  <span className={`incident-severity ${getSeverityClass(incident.crimeClass)}`}>
+                    {incident.crimeClass || 'Unknown'}
+                  </span>
+                </div>
+                <h4 className="incident-crime">{incident.crime || 'Unknown Crime'}</h4>
+                <div className="incident-details">
+                  <span className="incident-location">{incident.address || 'Location unknown'}</span>
+                  <span className="incident-time">
+                    {new Date(incident.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  </span>
+                </div>
+                {incident.locationType && (
+                  <span className="incident-location-type">{incident.locationType}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function getSeverityClass(crimeClass) {
+  const high = ['Assault', 'Robbery', 'Homicide', 'Kidnapping', 'Sexual Assault', 'Arson'];
+  const medium = ['Burglary', 'Motor Vehicle Theft', 'Weapons Violation', 'Theft'];
+  if (high.some(c => crimeClass?.includes(c))) return 'high';
+  if (medium.some(c => crimeClass?.includes(c))) return 'medium';
+  return 'low';
 }
 
 function TrashView({ discardedArticles, onRestoreArticle, onDeleteArticle, onBack }) {

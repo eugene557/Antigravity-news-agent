@@ -1220,6 +1220,88 @@ app.post('/api/agents/town-meeting/generate-article', async (req, res) => {
     }
   })();
 });
+
+const CRIME_SETTINGS_FILE = path.join(__dirname, '..', 'data', 'crime_watch_settings.json');
+const CRIME_DATA_DIR = path.join(__dirname, '..', 'data', 'crime');
+
+/**
+ * GET /api/settings/crime-watch
+ * Get crime watch settings
+ */
+app.get('/api/settings/crime-watch', (req, res) => {
+  try {
+    if (fs.existsSync(CRIME_SETTINGS_FILE)) {
+      const settings = JSON.parse(fs.readFileSync(CRIME_SETTINGS_FILE, 'utf-8'));
+      res.json(settings);
+    } else {
+      // Default settings
+      res.json({
+        daysToFetch: 30,
+        newsworthyCrimes: ['Assault', 'Robbery', 'Burglary', 'Motor Vehicle Theft', 'Arson', 'Homicide'],
+        skipCrimes: ['Vandalism', 'Trespassing', 'Disturbing the Peace'],
+        autoRun: false
+      });
+    }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * POST /api/settings/crime-watch
+ * Save crime watch settings
+ */
+app.post('/api/settings/crime-watch', (req, res) => {
+  try {
+    const settings = req.body;
+
+    // Ensure data directory exists
+    const dataDir = path.dirname(CRIME_SETTINGS_FILE);
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+
+    fs.writeFileSync(CRIME_SETTINGS_FILE, JSON.stringify(settings, null, 2));
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * GET /api/agents/crime-watch/incidents
+ * Get all crime incidents from the latest data file
+ */
+app.get('/api/agents/crime-watch/incidents', (req, res) => {
+  try {
+    // Ensure crime data directory exists
+    if (!fs.existsSync(CRIME_DATA_DIR)) {
+      return res.json({ incidents: [], metadata: { message: 'No crime data yet' } });
+    }
+
+    // Find the latest incidents file
+    const files = fs.readdirSync(CRIME_DATA_DIR)
+      .filter(f => f.startsWith('incidents_') && f.endsWith('.json'))
+      .sort()
+      .reverse();
+
+    if (files.length === 0) {
+      return res.json({ incidents: [], metadata: { message: 'No incidents files found' } });
+    }
+
+    const latestFile = path.join(CRIME_DATA_DIR, files[0]);
+    const data = JSON.parse(fs.readFileSync(latestFile, 'utf-8'));
+
+    res.json({
+      incidents: data.incidents || [],
+      metadata: data.metadata || {}
+    });
+  } catch (e) {
+    console.error('Error fetching crime incidents:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.post('/api/agents/crime-watch/run', async (req, res) => {
   if (agentStatus.crimeWatch.running) {
     return res.status(409).json({ error: 'Agent already running' });

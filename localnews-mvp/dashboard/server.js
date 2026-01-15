@@ -72,6 +72,22 @@ const auth = new google.auth.JWT({
 
 const sheets = google.sheets({ version: 'v4', auth });
 const SHEET_NAME = 'Articles';
+const MEETINGS_SHEET_NAME = 'Meetings';
+
+// Meetings column mapping (for Google Sheets persistence)
+const MEETINGS_COLUMNS = {
+  ID: 0,
+  VIDEO_ID: 1,
+  DEPARTMENT_ID: 2,
+  TYPE: 3,
+  DATE: 4,
+  STATUS: 5,
+  DESCRIPTION: 6,
+  SOURCE: 7,
+  IDEAS_COUNT: 8,
+  PROCESSED_AT: 9,
+  SYNCED_AT: 10
+};
 
 // Column mapping
 const COLUMNS = {
@@ -86,6 +102,176 @@ const COLUMNS = {
   STATUS: 8,
   CREATED_AT: 9
 };
+
+/**
+ * MEETINGS PERSISTENCE - Google Sheets as primary storage
+ * This ensures meetings survive deployments on Railway
+ */
+
+// Initialize Meetings sheet if it doesn't exist
+async function initMeetingsSheet() {
+  try {
+    // Check if Meetings sheet exists
+    const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
+    const sheetExists = spreadsheet.data.sheets.some(s => s.properties.title === MEETINGS_SHEET_NAME);
+
+    if (!sheetExists) {
+      // Create the Meetings sheet
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: [{
+            addSheet: {
+              properties: { title: MEETINGS_SHEET_NAME }
+            }
+          }]
+        }
+      });
+
+      // Add header row
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${MEETINGS_SHEET_NAME}!A1:K1`,
+        valueInputOption: 'RAW',
+        requestBody: {
+          values: [['ID', 'VideoID', 'DepartmentID', 'Type', 'Date', 'Status', 'Description', 'Source', 'IdeasCount', 'ProcessedAt', 'SyncedAt']]
+        }
+      });
+      console.log('Created Meetings sheet in Google Sheets');
+    }
+  } catch (e) {
+    console.error('Failed to initialize Meetings sheet:', e.message);
+  }
+}
+
+// Get all meetings from Google Sheets
+async function getMeetingsFromSheets() {
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${MEETINGS_SHEET_NAME}!A:K`
+    });
+
+    const rows = response.data.values || [];
+    if (rows.length <= 1) return [];
+
+    return rows.slice(1).map(row => ({
+      id: row[MEETINGS_COLUMNS.ID] || '',
+      videoId: row[MEETINGS_COLUMNS.VIDEO_ID] || null,
+      departmentId: row[MEETINGS_COLUMNS.DEPARTMENT_ID] || null,
+      type: row[MEETINGS_COLUMNS.TYPE] || '',
+      date: row[MEETINGS_COLUMNS.DATE] || '',
+      status: row[MEETINGS_COLUMNS.STATUS] || 'upcoming',
+      description: row[MEETINGS_COLUMNS.DESCRIPTION] || null,
+      source: row[MEETINGS_COLUMNS.SOURCE] || null,
+      ideasCount: parseInt(row[MEETINGS_COLUMNS.IDEAS_COUNT]) || 0,
+      processedAt: row[MEETINGS_COLUMNS.PROCESSED_AT] || null,
+      syncedAt: row[MEETINGS_COLUMNS.SYNCED_AT] || null
+    })).filter(m => m.id);
+  } catch (e) {
+    console.error('Failed to get meetings from Sheets:', e.message);
+    return [];
+  }
+}
+
+// Save a meeting to Google Sheets
+async function saveMeetingToSheets(meeting) {
+  try {
+    // Get existing meetings to check for duplicates
+    const existing = await getMeetingsFromSheets();
+    const existingRow = existing.findIndex(m => m.id === meeting.id);
+
+    const rowData = [
+      meeting.id,
+      meeting.videoId || '',
+      meeting.departmentId || '',
+      meeting.type || '',
+      meeting.date || '',
+      meeting.status || 'upcoming',
+      meeting.description || '',
+      meeting.source || '',
+      meeting.ideasCount || 0,
+      meeting.processedAt || '',
+      new Date().toISOString()
+    ];
+
+    if (existingRow >= 0) {
+      // Update existing row (row index + 2 for header and 0-indexing)
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${MEETINGS_SHEET_NAME}!A${existingRow + 2}:K${existingRow + 2}`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [rowData] }
+      });
+    } else {
+      // Append new row
+      await sheets.spreadsheets.values.append({
+        spreadsheetId,
+        range: `${MEETINGS_SHEET_NAME}!A:K`,
+        valueInputOption: 'RAW',
+        insertDataOption: 'INSERT_ROWS',
+        requestBody: { values: [rowData] }
+      });
+    }
+
+    return true;
+  } catch (e) {
+    console.error('Failed to save meeting to Sheets:', e.message);
+    return false;
+  }
+}
+
+// Delete a meeting from Google Sheets
+async function deleteMeetingFromSheets(meetingId) {
+  try {
+    const existing = await getMeetingsFromSheets();
+    const rowIndex = existing.findIndex(m => m.id === meetingId);
+
+    if (rowIndex < 0) return false;
+
+    // Clear the row (can't actually delete rows via values API)
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `${MEETINGS_SHEET_NAME}!A${rowIndex + 2}:K${rowIndex + 2}`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [['', '', '', '', '', '', '', '', '', '', '']] }
+    });
+
+    return true;
+  } catch (e) {
+    console.error('Failed to delete meeting from Sheets:', e.message);
+    return false;
+  }
+}
+
+// Sync local meetings.json to Sheets (one-time migration or backup)
+async function syncLocalMeetingsToSheets() {
+  const meetingsFile = path.join(__dirname, '..', 'data', 'meetings.json');
+  try {
+    if (!fs.existsSync(meetingsFile)) return;
+
+    const localMeetings = JSON.parse(fs.readFileSync(meetingsFile, 'utf-8'));
+    const sheetMeetings = await getMeetingsFromSheets();
+    const sheetIds = new Set(sheetMeetings.map(m => m.id));
+
+    let synced = 0;
+    for (const meeting of localMeetings) {
+      if (!sheetIds.has(meeting.id)) {
+        await saveMeetingToSheets(meeting);
+        synced++;
+      }
+    }
+
+    if (synced > 0) {
+      console.log(`Synced ${synced} meetings from local file to Google Sheets`);
+    }
+  } catch (e) {
+    console.error('Failed to sync local meetings:', e.message);
+  }
+}
+
+// Initialize on startup
+initMeetingsSheet().then(() => syncLocalMeetingsToSheets());
 
 /**
  * GET /api/articles
@@ -315,109 +501,123 @@ app.post('/api/settings/town-meeting', (req, res) => {
 
 /**
  * GET /api/agents/town-meeting/meetings
- * Returns list of processed meetings from the data directory
+ * Returns list of processed meetings - combines local files + Google Sheets
  */
-app.get('/api/agents/town-meeting/meetings', (req, res) => {
+app.get('/api/agents/town-meeting/meetings', async (req, res) => {
   try {
     const dataDir = path.join(__dirname, '..', 'data', 'swagit');
+    const meetings = [];
+    const seenIds = new Set();
 
-    if (!fs.existsSync(dataDir)) {
-      return res.json({ meetings: [] });
+    // First, get processed meetings from Google Sheets (persistent storage)
+    const sheetMeetings = await getMeetingsFromSheets();
+    for (const m of sheetMeetings) {
+      if (m.status === 'processed' && m.videoId) {
+        seenIds.add(m.videoId);
+        meetings.push({
+          id: m.videoId,
+          videoId: m.videoId,
+          sourceUrl: `https://jupiterfl.new.swagit.com/videos/${m.videoId}`,
+          hasVideo: false, // Not known from Sheets
+          hasVtt: false,
+          hasTranscript: true, // Assumed if processed
+          hasAnalysis: true,
+          ideasCount: m.ideasCount || 0,
+          articlesGenerated: 0,
+          processedAt: m.processedAt,
+          date: m.date,
+          description: m.description,
+          departmentId: m.departmentId,
+          type: m.type,
+          status: 'processed'
+        });
+      }
     }
 
-    const files = fs.readdirSync(dataDir);
+    // Then, add any meetings from local files that aren't in Sheets
+    if (fs.existsSync(dataDir)) {
+      const files = fs.readdirSync(dataDir);
 
-    // Find all unique video IDs that have been processed
-    // Only include meetings that have at least a transcript (not just downloading)
-    const videoIds = new Set();
-    files.forEach(f => {
-      // Only match transcript files - this ensures we only show completed meetings
-      const transcriptMatch = f.match(/^(\d+)_transcript\.json$/);
-      if (transcriptMatch) videoIds.add(transcriptMatch[1]);
-
-      // Also include if there's an ideas file (processed)
-      const ideasMatch = f.match(/^(\d+)_ideas\.json$/);
-      if (ideasMatch) videoIds.add(ideasMatch[1]);
-    });
-
-    const meetings = [];
-
-    for (const videoId of videoIds) {
-      const hasVideo = files.includes(`${videoId}.mp4`);
-      const hasVtt = files.includes(`${videoId}.vtt`);
-      const hasTranscript = files.includes(`${videoId}_transcript.json`);
-      const hasAnalysis = files.includes(`${videoId}_analysis.json`);
-      const hasIdeas = files.includes(`${videoId}_ideas.json`) || fs.existsSync(IDEAS_FILE);
-
-      // Count articles generated for this video
-      const articleFiles = files.filter(f => f.startsWith(`${videoId}_article`));
-
-      // Get video file stats for date
-      let processedDate = null;
-      try {
-        const stat = fs.statSync(path.join(dataDir, `${videoId}.mp4`));
-        processedDate = stat.mtime.toISOString();
-      } catch (e) { }
-
-      // Get ideas count from per-meeting ideas file first, then fallback to current_ideas.json
-      let ideasCount = 0;
-      try {
-        const meetingIdeasFile = path.join(dataDir, `${videoId}_ideas.json`);
-        if (fs.existsSync(meetingIdeasFile)) {
-          const ideasData = JSON.parse(fs.readFileSync(meetingIdeasFile, 'utf-8'));
-          ideasCount = ideasData.ideas?.length || 0;
-        } else if (fs.existsSync(IDEAS_FILE)) {
-          // Fallback to current_ideas.json if it matches this video
-          const ideasData = JSON.parse(fs.readFileSync(IDEAS_FILE, 'utf-8'));
-          if (ideasData.metadata?.videoId === videoId) {
-            ideasCount = ideasData.ideas?.length || 0;
-          }
-        }
-      } catch (e) { }
-
-      // Lookup metadata in meetings.json FIRST (needed for status check)
-      const meetingsFile = path.join(__dirname, '..', 'data', 'meetings.json');
-      let registry = [];
-      try {
-        if (fs.existsSync(meetingsFile)) {
-          registry = JSON.parse(fs.readFileSync(meetingsFile, 'utf-8'));
-        }
-      } catch (e) { }
-
-      const registryEntry = registry.find(m => m.videoId === videoId || m.id === videoId);
-
-      // Determine status - support both video+transcript and transcript-only workflows
-      let status = 'downloading';
-      if (hasTranscript) status = 'transcribed';
-      if (hasTranscript && hasAnalysis) status = 'analyzed';
-      if (hasTranscript && hasAnalysis && ideasCount > 0) status = 'processed';
-      // Also check registry for status override
-      if (registryEntry?.status === 'processed' || registryEntry?.ideasCount > 0) {
-        status = 'processed';
-        if (!ideasCount && registryEntry?.ideasCount) ideasCount = registryEntry.ideasCount;
-      }
-
-      meetings.push({
-        id: videoId,
-        videoId,
-        sourceUrl: `https://jupiterfl.new.swagit.com/videos/${videoId}`,
-        hasVideo,
-        hasVtt,
-        hasTranscript,
-        hasAnalysis,
-        ideasCount,
-        articlesGenerated: articleFiles.length,
-        processedAt: processedDate,
-        date: registryEntry?.date || null,
-        description: registryEntry?.description || null,
-        departmentId: registryEntry?.departmentId || null,
-        type: registryEntry?.type || null,
-        status
+      // Find all unique video IDs that have been processed
+      const videoIds = new Set();
+      files.forEach(f => {
+        const transcriptMatch = f.match(/^(\d+)_transcript\.json$/);
+        if (transcriptMatch) videoIds.add(transcriptMatch[1]);
+        const ideasMatch = f.match(/^(\d+)_ideas\.json$/);
+        if (ideasMatch) videoIds.add(ideasMatch[1]);
       });
+
+      for (const videoId of videoIds) {
+        if (seenIds.has(videoId)) continue; // Skip if already from Sheets
+
+        const hasVideo = files.includes(`${videoId}.mp4`);
+        const hasVtt = files.includes(`${videoId}.vtt`);
+        const hasTranscript = files.includes(`${videoId}_transcript.json`);
+        const hasAnalysis = files.includes(`${videoId}_analysis.json`);
+
+        const articleFiles = files.filter(f => f.startsWith(`${videoId}_article`));
+
+        let processedDate = null;
+        try {
+          const stat = fs.statSync(path.join(dataDir, `${videoId}.mp4`));
+          processedDate = stat.mtime.toISOString();
+        } catch (e) { }
+
+        let ideasCount = 0;
+        try {
+          const meetingIdeasFile = path.join(dataDir, `${videoId}_ideas.json`);
+          if (fs.existsSync(meetingIdeasFile)) {
+            const ideasData = JSON.parse(fs.readFileSync(meetingIdeasFile, 'utf-8'));
+            ideasCount = ideasData.ideas?.length || 0;
+          } else if (fs.existsSync(IDEAS_FILE)) {
+            const ideasData = JSON.parse(fs.readFileSync(IDEAS_FILE, 'utf-8'));
+            if (ideasData.metadata?.videoId === videoId) {
+              ideasCount = ideasData.ideas?.length || 0;
+            }
+          }
+        } catch (e) { }
+
+        const meetingsFile = path.join(__dirname, '..', 'data', 'meetings.json');
+        let registry = [];
+        try {
+          if (fs.existsSync(meetingsFile)) {
+            registry = JSON.parse(fs.readFileSync(meetingsFile, 'utf-8'));
+          }
+        } catch (e) { }
+
+        const registryEntry = registry.find(m => m.videoId === videoId || m.id === videoId);
+
+        let status = 'downloading';
+        if (hasTranscript) status = 'transcribed';
+        if (hasTranscript && hasAnalysis) status = 'analyzed';
+        if (hasTranscript && hasAnalysis && ideasCount > 0) status = 'processed';
+        if (registryEntry?.status === 'processed' || registryEntry?.ideasCount > 0) {
+          status = 'processed';
+          if (!ideasCount && registryEntry?.ideasCount) ideasCount = registryEntry.ideasCount;
+        }
+
+        meetings.push({
+          id: videoId,
+          videoId,
+          sourceUrl: `https://jupiterfl.new.swagit.com/videos/${videoId}`,
+          hasVideo,
+          hasVtt,
+          hasTranscript,
+          hasAnalysis,
+          ideasCount,
+          articlesGenerated: articleFiles.length,
+          processedAt: processedDate || registryEntry?.processedAt,
+          date: registryEntry?.date || null,
+          description: registryEntry?.description || null,
+          departmentId: registryEntry?.departmentId || null,
+          type: registryEntry?.type || null,
+          status
+        });
+      }
     }
 
     // Sort by processed date, newest first
-    meetings.sort((a, b) => new Date(b.processedAt) - new Date(a.processedAt));
+    meetings.sort((a, b) => new Date(b.processedAt || 0) - new Date(a.processedAt || 0));
 
     res.json({ meetings });
   } catch (e) {
@@ -427,22 +627,18 @@ app.get('/api/agents/town-meeting/meetings', (req, res) => {
 
 /**
  * GET /api/agents/town-meeting/upcoming
- * Returns list of upcoming meetings from meetings.json
+ * Returns list of upcoming meetings - uses Google Sheets as primary storage
  */
-app.get('/api/agents/town-meeting/upcoming', (req, res) => {
+app.get('/api/agents/town-meeting/upcoming', async (req, res) => {
   try {
-    const meetingsFile = path.join(__dirname, '..', 'data', 'meetings.json');
+    // Get meetings from Google Sheets (persistent storage)
+    const sheetMeetings = await getMeetingsFromSheets();
 
-    if (!fs.existsSync(meetingsFile)) {
-      return res.json({ upcoming: [] });
-    }
-
-    const registry = JSON.parse(fs.readFileSync(meetingsFile, 'utf-8'));
     // Filter to only future meetings
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const upcoming = registry.filter(m => new Date(m.date) >= today);
+    const upcoming = sheetMeetings.filter(m => new Date(m.date) >= today);
     res.json({ upcoming });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -451,26 +647,27 @@ app.get('/api/agents/town-meeting/upcoming', (req, res) => {
 
 /**
  * DELETE /api/agents/town-meeting/upcoming/:id
- * Delete an upcoming meeting
+ * Delete an upcoming meeting from Google Sheets
  */
-app.delete('/api/agents/town-meeting/upcoming/:id', (req, res) => {
+app.delete('/api/agents/town-meeting/upcoming/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const meetingsFile = path.join(__dirname, '..', 'data', 'meetings.json');
 
-    if (!fs.existsSync(meetingsFile)) {
-      return res.status(404).json({ error: 'No meetings file found' });
-    }
-
-    let registry = JSON.parse(fs.readFileSync(meetingsFile, 'utf-8'));
-    const index = registry.findIndex(m => m.id === id);
-
-    if (index === -1) {
+    const success = await deleteMeetingFromSheets(id);
+    if (!success) {
       return res.status(404).json({ error: 'Meeting not found' });
     }
 
-    registry.splice(index, 1);
-    fs.writeFileSync(meetingsFile, JSON.stringify(registry, null, 2));
+    // Also remove from local file if it exists
+    const meetingsFile = path.join(__dirname, '..', 'data', 'meetings.json');
+    if (fs.existsSync(meetingsFile)) {
+      let registry = JSON.parse(fs.readFileSync(meetingsFile, 'utf-8'));
+      const index = registry.findIndex(m => m.id === id);
+      if (index !== -1) {
+        registry.splice(index, 1);
+        fs.writeFileSync(meetingsFile, JSON.stringify(registry, null, 2));
+      }
+    }
 
     res.json({ success: true });
   } catch (e) {
@@ -480,9 +677,9 @@ app.delete('/api/agents/town-meeting/upcoming/:id', (req, res) => {
 
 /**
  * POST /api/agents/town-meeting/meetings
- * Manual creation of upcoming meetings
+ * Manual creation of upcoming meetings - saves to Google Sheets
  */
-app.post('/api/agents/town-meeting/meetings', (req, res) => {
+app.post('/api/agents/town-meeting/meetings', async (req, res) => {
   try {
     const { date, type, departmentId, description } = req.body;
 
@@ -490,19 +687,15 @@ app.post('/api/agents/town-meeting/meetings', (req, res) => {
       return res.status(400).json({ error: 'Date and Type are required' });
     }
 
-    const meetingsFile = path.join(__dirname, '..', 'data', 'meetings.json');
-    let registry = [];
-
-    if (fs.existsSync(meetingsFile)) {
-      registry = JSON.parse(fs.readFileSync(meetingsFile, 'utf-8'));
-    }
-
     const prefix = departmentId ? departmentId :
       type.toLowerCase().includes('council') ? 'tc' :
         type.toLowerCase().includes('planning') ? 'pb' : 'tm';
 
     const id = `${prefix}-${date}`;
-    if (registry.find(m => m.id === id)) {
+
+    // Check if already exists in Sheets
+    const existing = await getMeetingsFromSheets();
+    if (existing.find(m => m.id === id)) {
       return res.status(409).json({ error: 'Meeting with this ID already exists' });
     }
 
@@ -513,9 +706,19 @@ app.post('/api/agents/town-meeting/meetings', (req, res) => {
       status: 'upcoming',
       departmentId,
       description: description || null,
-      createdAt: new Date().toISOString()
+      source: 'manual',
+      processedAt: new Date().toISOString()
     };
 
+    // Save to Google Sheets (primary storage)
+    await saveMeetingToSheets(newMeeting);
+
+    // Also save to local file for backwards compatibility
+    const meetingsFile = path.join(__dirname, '..', 'data', 'meetings.json');
+    let registry = [];
+    if (fs.existsSync(meetingsFile)) {
+      registry = JSON.parse(fs.readFileSync(meetingsFile, 'utf-8'));
+    }
     registry.push(newMeeting);
     registry.sort((a, b) => new Date(a.date) - new Date(b.date));
     fs.writeFileSync(meetingsFile, JSON.stringify(registry, null, 2));
@@ -523,6 +726,215 @@ app.post('/api/agents/town-meeting/meetings', (req, res) => {
     res.json(newMeeting);
   } catch (e) {
     console.error('Error creating meeting:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * SCAN STATE PERSISTENCE
+ * Store the video scanner's last position in Google Sheets so it survives deployments.
+ * This prevents re-scanning old ID ranges after Railway deployments.
+ */
+
+const SCAN_STATE_SHEET_NAME = 'ScanState';
+
+// Initialize ScanState sheet if it doesn't exist
+async function initScanStateSheet() {
+  try {
+    const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
+    const sheetExists = spreadsheet.data.sheets.some(s => s.properties.title === SCAN_STATE_SHEET_NAME);
+
+    if (!sheetExists) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: [{
+            addSheet: {
+              properties: { title: SCAN_STATE_SHEET_NAME }
+            }
+          }]
+        }
+      });
+
+      // Add header row
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${SCAN_STATE_SHEET_NAME}!A1:D1`,
+        valueInputOption: 'RAW',
+        requestBody: {
+          values: [['Key', 'HighestValidId', 'HighestScannedId', 'ScannedAt']]
+        }
+      });
+      console.log('Created ScanState sheet in Google Sheets');
+    }
+  } catch (e) {
+    console.error('Failed to initialize ScanState sheet:', e.message);
+  }
+}
+
+// Get scan state from Google Sheets
+async function getScanStateFromSheets(key = 'video_scanner') {
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${SCAN_STATE_SHEET_NAME}!A:D`
+    });
+
+    const rows = response.data.values || [];
+    if (rows.length <= 1) return null;
+
+    // Find the row for this key
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] === key) {
+        return {
+          highestValidId: parseInt(rows[i][1]) || 0,
+          highestScannedId: parseInt(rows[i][2]) || 0,
+          scannedAt: rows[i][3] || null
+        };
+      }
+    }
+    return null;
+  } catch (e) {
+    console.error('Failed to get scan state from Sheets:', e.message);
+    return null;
+  }
+}
+
+// Save scan state to Google Sheets
+async function saveScanStateToSheets(key, state) {
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${SCAN_STATE_SHEET_NAME}!A:D`
+    });
+
+    const rows = response.data.values || [];
+    let rowIndex = -1;
+
+    // Find existing row for this key
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i] && rows[i][0] === key) {
+        rowIndex = i;
+        break;
+      }
+    }
+
+    const rowData = [
+      key,
+      state.highestValidId || 0,
+      state.highestScannedId || 0,
+      state.scannedAt || new Date().toISOString()
+    ];
+
+    if (rowIndex >= 0) {
+      // Update existing row
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${SCAN_STATE_SHEET_NAME}!A${rowIndex + 1}:D${rowIndex + 1}`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [rowData] }
+      });
+    } else {
+      // Append new row
+      await sheets.spreadsheets.values.append({
+        spreadsheetId,
+        range: `${SCAN_STATE_SHEET_NAME}!A:D`,
+        valueInputOption: 'RAW',
+        insertDataOption: 'INSERT_ROWS',
+        requestBody: { values: [rowData] }
+      });
+    }
+
+    return true;
+  } catch (e) {
+    console.error('Failed to save scan state to Sheets:', e.message);
+    return false;
+  }
+}
+
+// Initialize on startup
+initScanStateSheet();
+
+/**
+ * GET /api/agents/town-meeting/scan-state
+ * Get the current scan state (for video scanner to resume from)
+ */
+app.get('/api/agents/town-meeting/scan-state', async (req, res) => {
+  try {
+    const state = await getScanStateFromSheets('video_scanner');
+    if (state) {
+      console.log(`Returning scan state: highestScannedId=${state.highestScannedId}, scannedAt=${state.scannedAt}`);
+      res.json(state);
+    } else {
+      res.json({ highestValidId: 0, highestScannedId: 0, scannedAt: null });
+    }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * PUT /api/agents/town-meeting/scan-state
+ * Save the scan state (called by video scanner after each scan)
+ */
+app.put('/api/agents/town-meeting/scan-state', async (req, res) => {
+  try {
+    const { highestValidId, highestScannedId } = req.body;
+
+    if (highestScannedId === undefined) {
+      return res.status(400).json({ error: 'highestScannedId is required' });
+    }
+
+    const state = {
+      highestValidId: highestValidId || 0,
+      highestScannedId: highestScannedId,
+      scannedAt: new Date().toISOString()
+    };
+
+    const success = await saveScanStateToSheets('video_scanner', state);
+
+    if (success) {
+      console.log(`Scan state saved: highestScannedId=${highestScannedId}`);
+      res.json({ success: true, state });
+    } else {
+      res.status(500).json({ error: 'Failed to save scan state' });
+    }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * PUT /api/agents/town-meeting/meetings/:id
+ * Update a meeting (used by agents to persist processed meetings to Sheets)
+ */
+app.put('/api/agents/town-meeting/meetings/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const meetingData = { id, ...req.body };
+
+    // Save to Google Sheets
+    await saveMeetingToSheets(meetingData);
+
+    // Also update local file for backwards compatibility
+    const meetingsFile = path.join(__dirname, '..', 'data', 'meetings.json');
+    let registry = [];
+    if (fs.existsSync(meetingsFile)) {
+      registry = JSON.parse(fs.readFileSync(meetingsFile, 'utf-8'));
+    }
+    const index = registry.findIndex(m => m.id === id);
+    if (index >= 0) {
+      registry[index] = { ...registry[index], ...meetingData };
+    } else {
+      registry.push(meetingData);
+    }
+    registry.sort((a, b) => new Date(a.date) - new Date(b.date));
+    fs.writeFileSync(meetingsFile, JSON.stringify(registry, null, 2));
+
+    console.log(`Meeting ${id} persisted to Google Sheets`);
+    res.json({ success: true, meeting: meetingData });
+  } catch (e) {
+    console.error('Error updating meeting:', e);
     res.status(500).json({ error: e.message });
   }
 });

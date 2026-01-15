@@ -255,7 +255,7 @@ function App() {
   const [townHallView, setTownHallView] = useState('meetings'); // 'meetings', 'articles', 'upcoming', or 'settings'
   const [townHallExpanded, setTownHallExpanded] = useState(true); // Dropdown expanded state
   const [selectedMeeting, setSelectedMeeting] = useState(null);
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('draft');
   const [sortBy, setSortBy] = useState('newest');
 
   const [agentStatus, setAgentStatus] = useState({
@@ -588,12 +588,9 @@ function App() {
         if (viewSource === 'crime-watch' && a.agentSource !== 'crime-watch') return false;
       }
 
-      // 2. Filter by Status
-      if (filterStatus !== 'all') {
-        return a.status === filterStatus;
-      }
-
-      return true;
+      // 2. Filter by Status (discarded articles go to trash, not shown here)
+      if (a.status === 'discarded') return false;
+      return a.status === filterStatus;
     })
     // Sort based on selected option
     .sort((a, b) => {
@@ -657,11 +654,11 @@ function App() {
         <nav className="nav-menu">
           <div className="nav-section">
             <button
-              className={`nav-item nav-parent ${viewSource === 'town-meeting' ? 'active' : ''}`}
+              className={`nav-item nav-parent ${townHallExpanded ? 'expanded' : ''}`}
               onClick={() => setTownHallExpanded(!townHallExpanded)}
             >
+              <span className="nav-parent-text">Town Hall News Agent</span>
               <span className={`nav-arrow ${townHallExpanded ? 'expanded' : ''}`}>▶</span>
-              Town Hall News Agent
             </button>
             {townHallExpanded && (
               <div className="nav-children">
@@ -677,19 +674,6 @@ function App() {
                   }}
                 >
                   Meetings
-                </button>
-                <button
-                  className={`nav-item nav-sub ${!showSettings && viewSource === 'town-meeting' && townHallView === 'upcoming' ? 'active' : ''}`}
-                  onClick={() => {
-                    setViewSource('town-meeting');
-                    setTownHallView('upcoming');
-                    setShowSettings(false);
-                    setSelectedMeeting(null);
-                    setSelectedIdea(null);
-                    setSelectedArticle(null);
-                  }}
-                >
-                  Upcoming
                 </button>
                 <button
                   className={`nav-item nav-sub ${!showSettings && viewSource === 'town-meeting' && townHallView === 'articles' ? 'active' : ''}`}
@@ -728,9 +712,14 @@ function App() {
               <span className="user-email">{user?.email || ''}</span>
             </div>
           </div>
-          <button className="btn-refresh" onClick={() => { fetchArticles(); fetchAgentStatus(); fetchIdeas(); fetchMeetings(); fetchUpcomingMeetings(); }}>
-            Refresh Data
-          </button>
+          <div className="sidebar-footer-actions">
+            <button className="btn-refresh" onClick={() => { fetchArticles(); fetchAgentStatus(); fetchIdeas(); fetchMeetings(); fetchUpcomingMeetings(); }}>
+              Refresh
+            </button>
+            <button className="btn-logout" onClick={handleLogout}>
+              Logout
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -752,7 +741,9 @@ function App() {
             user={user}
             onSave={saveSettings}
             onClose={() => setShowSettings(false)}
-            onLogout={handleLogout}
+            discardedArticles={articles.filter(a => a.status === 'discarded')}
+            onRestoreArticle={(id) => updateStatus(id, 'draft')}
+            onDeleteArticle={(id) => updateStatus(id, 'deleted')}
           />
         ) : selectedMeeting ? (
           <MeetingDetailView
@@ -774,18 +765,15 @@ function App() {
                 <div className="feed-title-block">
                   <h2>
                     {townHallView === 'meetings' && 'Meetings'}
-                    {townHallView === 'upcoming' && 'Upcoming Meetings'}
                     {townHallView === 'articles' && 'Articles'}
                   </h2>
                 </div>
                 <div className="feed-actions">
-                  {townHallView !== 'upcoming' && (
-                    <AgentControl
-                      name="Meeting Agent"
-                      status={agentStatus.townMeeting}
-                      onRun={() => runAgent('town-meeting')}
-                    />
-                  )}
+                  <AgentControl
+                    name="Meeting Agent"
+                    status={agentStatus.townMeeting}
+                    onRun={() => runAgent('town-meeting')}
+                  />
                 </div>
               </div>
             </header>
@@ -800,16 +788,6 @@ function App() {
                   departments={settings?.departments}
                   onSelectMeeting={setSelectedMeeting}
                   onAddMeeting={() => setShowAddMeetingModal(true)}
-                  onDeleteMeeting={handleDeleteUpcoming}
-                />
-              ) : viewSource === 'town-meeting' && townHallView === 'upcoming' ? (
-                <UpcomingMeetingsView
-                  meetings={upcomingMeetings}
-                  departments={settings?.departments}
-                  viewMode={upcomingViewMode}
-                  onViewModeChange={setUpcomingViewMode}
-                  onAddMeeting={() => setShowAddMeetingModal(true)}
-                  onDeleteMeeting={handleDeleteUpcoming}
                 />
               ) : (
                 <>
@@ -822,17 +800,11 @@ function App() {
 
                   <div className="filter-bar">
                     <div className="filter-tabs">
-                      <button className={`tab ${filterStatus === 'all' ? 'active' : ''}`} onClick={() => setFilterStatus('all')}>
-                        All <span className="tab-count">{metrics.total}</span>
-                      </button>
                       <button className={`tab ${filterStatus === 'draft' ? 'active' : ''}`} onClick={() => setFilterStatus('draft')}>
                         Drafts <span className="tab-count draft">{metrics.drafts}</span>
                       </button>
                       <button className={`tab ${filterStatus === 'approved' ? 'active' : ''}`} onClick={() => setFilterStatus('approved')}>
                         Approved <span className="tab-count approved">{metrics.ready}</span>
-                      </button>
-                      <button className={`tab ${filterStatus === 'discarded' ? 'active' : ''}`} onClick={() => setFilterStatus('discarded')}>
-                        Discarded <span className="tab-count discarded">{metrics.discarded}</span>
                       </button>
                     </div>
                   </div>
@@ -1031,7 +1003,7 @@ function ArticleCard({ article, onClick, onStatusChange }) {
           </span>
           {isNew && <span className="new-badge">New</span>}
         </div>
-        <span className="date">{formatRelativeTime(article.createdAt)}</span>
+        <span className="date">Generated {formatRelativeTime(article.createdAt)}</span>
       </div>
 
       <div className="card-main">
@@ -1210,7 +1182,8 @@ function formatRelativeTime(dateStr) {
     if (mins < 60) return `${mins}m ago`;
     const hours = Math.floor(mins / 60);
     if (hours < 24) return `${hours}h ago`;
-    return formatDate(dateStr);
+    // For older items, show "on Jan 2, 10:30 AM" format
+    return `on ${formatDate(dateStr)}`;
   } catch { return dateStr; }
 }
 
@@ -1225,7 +1198,7 @@ function isThisWeek(dateStr) {
   } catch { return false; }
 }
 
-function SettingsView({ settings, user, onSave, onClose, onLogout }) {
+function SettingsView({ settings, user, onSave, onClose, discardedArticles = [], onRestoreArticle, onDeleteArticle }) {
   const [localSettings, setLocalSettings] = useState(settings);
   const [selectedDept, setSelectedDept] = useState(0);
   const [activeSection, setActiveSection] = useState('account');
@@ -1291,6 +1264,13 @@ function SettingsView({ settings, user, onSave, onClose, onLogout }) {
               <span className="nav-icon">◉</span>
               Departments
             </button>
+            <button
+              className={`settings-nav-item ${activeSection === 'trash' ? 'active' : ''}`}
+              onClick={() => setActiveSection('trash')}
+            >
+              <span className="nav-icon">◉</span>
+              Trash
+            </button>
           </div>
         </nav>
 
@@ -1318,20 +1298,6 @@ function SettingsView({ settings, user, onSave, onClose, onLogout }) {
                 </div>
               </div>
 
-              <div className="settings-card settings-card-danger">
-                <div className="settings-card-title">
-                  <h2>Session</h2>
-                </div>
-                <div className="settings-card-body">
-                  <div className="danger-zone">
-                    <div className="danger-info">
-                      <h4>Sign out of your account</h4>
-                      <p>You will need to sign in again to access the dashboard</p>
-                    </div>
-                    <button className="btn-signout" onClick={onLogout}>Sign Out</button>
-                  </div>
-                </div>
-              </div>
             </div>
           )}
 
@@ -1428,6 +1394,59 @@ function SettingsView({ settings, user, onSave, onClose, onLogout }) {
                       </div>
                     ))}
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'trash' && (
+            <div className="settings-page">
+              <div className="settings-page-title">
+                <h1>Trash</h1>
+                <p>Discarded articles that can be restored or permanently deleted</p>
+              </div>
+
+              <div className="settings-card">
+                <div className="settings-card-title">
+                  <h2>Discarded Articles</h2>
+                  <span className="member-count-badge">{discardedArticles.length}</span>
+                </div>
+                <div className="settings-card-body no-padding">
+                  {discardedArticles.length === 0 ? (
+                    <div className="empty-trash">
+                      <span className="empty-trash-icon">🗑️</span>
+                      <p>Trash is empty</p>
+                    </div>
+                  ) : (
+                    <div className="trash-list">
+                      {discardedArticles.map((article) => (
+                        <div key={article.id} className="trash-item">
+                          <div className="trash-item-content">
+                            <h4>{article.headline || 'Untitled Article'}</h4>
+                            <span className="trash-item-date">
+                              Discarded {formatRelativeTime(article.updatedAt || article.createdAt)}
+                            </span>
+                          </div>
+                          <div className="trash-item-actions">
+                            <button
+                              className="btn-restore"
+                              onClick={() => onRestoreArticle(article.id)}
+                              title="Restore to Drafts"
+                            >
+                              ↩ Restore
+                            </button>
+                            <button
+                              className="btn-delete-permanent"
+                              onClick={() => onDeleteArticle(article.id)}
+                              title="Delete permanently"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1813,7 +1832,7 @@ function UpcomingMeetingsView({ meetings, departments, viewMode, onViewModeChang
   );
 }
 
-function MeetingListView({ department, ideas, meetings, upcomingMeetings, departments, onSelectMeeting, onAddMeeting, onDeleteMeeting }) {
+function MeetingListView({ department, ideas, meetings, upcomingMeetings, departments, onSelectMeeting, onAddMeeting }) {
   // Calendar state for upcoming section
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState({
@@ -1972,7 +1991,7 @@ function MeetingListView({ department, ideas, meetings, upcomingMeetings, depart
           </button>
         </div>
 
-        <div className="upcoming-calendar compact">
+        <div className="upcoming-calendar-grid">
           <div className="calendar-container">
             <div className="calendar-nav">
               <div className="calendar-nav-left">
@@ -1983,24 +2002,24 @@ function MeetingListView({ department, ideas, meetings, upcomingMeetings, depart
               <button className="calendar-today-btn" onClick={goToToday}>Today</button>
             </div>
 
-            <div className="calendar-table">
-              <div className="calendar-weekdays">
-                <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+            <div className="calendar-table-grid">
+              <div className="calendar-weekdays-grid">
+                <span>SUN</span><span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span>
               </div>
-              <div className="calendar-grid">
+              <div className="calendar-days-grid">
                 {generateCalendarDays(currentMonth.year, currentMonth.month).map((dayInfo, idx) => (
                   <div
                     key={idx}
-                    className={`calendar-day ${dayInfo.isOtherMonth ? 'empty' : ''} ${dayInfo.meetings.length > 0 ? 'has-meeting' : ''} ${dayInfo.isToday ? 'is-today' : ''}`}
+                    className={`calendar-cell ${dayInfo.isOtherMonth ? 'other-month' : ''} ${dayInfo.meetings.length > 0 ? 'has-meeting' : ''} ${dayInfo.isToday ? 'is-today' : ''}`}
                   >
                     {dayInfo.day && (
                       <>
-                        <span className="calendar-day-num">{dayInfo.day}</span>
+                        <span className="cell-day-num">{dayInfo.day}</span>
                         {dayInfo.meetings.length > 0 && (
-                          <div className="calendar-day-meetings">
+                          <div className="cell-meetings">
                             {dayInfo.meetings.map(m => (
-                              <div key={m.id} className="calendar-meeting-chip" title={m.name}>
-                                <span className="chip-dot"></span>
+                              <div key={m.id} className="cell-meeting-item" title={`${m.name}${m.description ? ` - ${m.description}` : ''}`}>
+                                {m.name}
                               </div>
                             ))}
                           </div>
@@ -2011,20 +2030,6 @@ function MeetingListView({ department, ideas, meetings, upcomingMeetings, depart
                 ))}
               </div>
             </div>
-
-            {enrichedUpcoming.length > 0 && (
-              <div className="upcoming-list-mini">
-                {enrichedUpcoming.slice(0, 5).map(meeting => (
-                  <div key={meeting.id} className="upcoming-mini-row">
-                    <span className="upcoming-mini-date">
-                      {new Date(meeting.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </span>
-                    <span className="upcoming-mini-name">{meeting.name}</span>
-                    <button className="btn-delete-mini" onClick={() => onDeleteMeeting(meeting.id)} title="Remove">×</button>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </div>

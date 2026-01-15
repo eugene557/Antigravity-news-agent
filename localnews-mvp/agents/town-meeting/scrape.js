@@ -19,6 +19,7 @@ import { spawn } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import http from 'http';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.join(__dirname, '../../');
@@ -170,9 +171,64 @@ function updateMeetingStatus(meetingId, status, videoId = null) {
 }
 
 /**
- * Register a newly processed meeting in meetings.json
+ * Persist meeting to Google Sheets via API
+ * This ensures the meeting survives Railway deployments
  */
-function registerProcessedMeeting(videoId, departmentId) {
+async function persistMeetingToSheets(meeting) {
+    // Always use localhost since we're in the same container as the server
+    const port = process.env.PORT || 8080;
+    const host = 'localhost';
+
+    console.log(`☁️  Persisting meeting ${meeting.id} to Sheets via http://${host}:${port}...`);
+
+    return new Promise((resolve) => {
+        const data = JSON.stringify(meeting);
+        const options = {
+            hostname: host,
+            port: port,
+            path: `/api/agents/town-meeting/meetings/${meeting.id}`,
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(data)
+            },
+            timeout: 10000
+        };
+
+        const req = http.request(options, (res) => {
+            let body = '';
+            res.on('data', (chunk) => { body += chunk; });
+            res.on('end', () => {
+                if (res.statusCode === 200) {
+                    console.log(`☁️  Meeting ${meeting.id} persisted to Google Sheets successfully`);
+                    resolve(true);
+                } else {
+                    console.error(`❌ Failed to persist to Sheets (HTTP ${res.statusCode}): ${body}`);
+                    resolve(false);
+                }
+            });
+        });
+
+        req.on('timeout', () => {
+            console.error(`❌ Timeout persisting to Sheets - server not responding`);
+            req.destroy();
+            resolve(false);
+        });
+
+        req.on('error', (e) => {
+            console.error(`❌ Could not persist to Sheets: ${e.message}`);
+            resolve(false);
+        });
+
+        req.write(data);
+        req.end();
+    });
+}
+
+/**
+ * Register a newly processed meeting in meetings.json AND Google Sheets
+ */
+async function registerProcessedMeeting(videoId, departmentId) {
     try {
         // Load existing meetings
         let meetings = [];
@@ -233,6 +289,16 @@ function registerProcessedMeeting(videoId, departmentId) {
             } catch (e) { /* ignore */ }
         }
 
+        // Count ideas if available
+        let ideasCount = 0;
+        const ideasPath = path.join(DATA_DIR, `${videoId}_ideas.json`);
+        if (fs.existsSync(ideasPath)) {
+            try {
+                const ideas = JSON.parse(fs.readFileSync(ideasPath, 'utf-8'));
+                ideasCount = ideas.ideas?.length || 0;
+            } catch (e) { /* ignore */ }
+        }
+
         // Create meeting entry
         const newMeeting = {
             id: videoId,
@@ -243,12 +309,23 @@ function registerProcessedMeeting(videoId, departmentId) {
             status: 'processed',
             processedAt: new Date().toISOString(),
             description: description,
-            durationMinutes: durationMinutes
+            durationMinutes: durationMinutes,
+            ideasCount: ideasCount
         };
 
+        // Save to local file first
         meetings.push(newMeeting);
         fs.writeFileSync(MEETINGS_PATH, JSON.stringify(meetings, null, 2));
         console.log(`✅ Registered meeting ${videoId} in meetings.json`);
+        console.log(`   Meeting data: ${JSON.stringify(newMeeting, null, 2)}`);
+
+        // Also persist to Google Sheets (survives deployments)
+        console.log(`\n📤 Attempting to persist to Google Sheets...`);
+        const persisted = await persistMeetingToSheets(newMeeting);
+        if (!persisted) {
+            console.error(`⚠️  Meeting saved locally but NOT persisted to Google Sheets!`);
+            console.error(`   This meeting may be lost on next deployment.`);
+        }
 
     } catch (e) {
         console.warn(`⚠️  Could not register meeting: ${e.message}`);
@@ -283,9 +360,14 @@ async function processVideo(videoId) {
 
 async function main() {
     console.log('🏛️  Town Meeting Orchestrator Starting...');
+    console.log(`   Timestamp: ${new Date().toISOString()}`);
 
     const departmentId = process.env.DEPARTMENT_ID || 'town-council';
     const mode = process.env.SCRAPE_MODE || 'latest'; // 'latest' or 'upcoming'
+
+    console.log(`   Department: ${departmentId}`);
+    console.log(`   Mode: ${mode}`);
+    console.log(`   PORT env: ${process.env.PORT || '(not set, using 8080)'}`);
 
     try {
         if (mode === 'upcoming') {
@@ -350,8 +432,8 @@ async function main() {
 
         await processVideo(videoId);
 
-        // 4. Register the meeting in meetings.json for the dashboard
-        registerProcessedMeeting(videoId, departmentId);
+        // 4. Register the meeting in meetings.json AND Google Sheets for persistence
+        await registerProcessedMeeting(videoId, departmentId);
 
         console.log('\n✅ Orchestration Complete. Analysis ready for generation.');
 

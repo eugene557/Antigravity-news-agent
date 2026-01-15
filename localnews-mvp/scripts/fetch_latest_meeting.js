@@ -274,8 +274,9 @@ async function scanForNewVideos(startId, processedIds) {
                 consecutiveTimeouts = 0; // Reset timeout counter
 
                 if (result.isJupiter && !processedIds.has(result.videoId)) {
-                    jupiterVideos.push(result.videoId);
-                    console.error(`  ✓ Found unprocessed Jupiter video: ${result.videoId}`);
+                    // MVP: Return immediately when we find a Jupiter video
+                    console.error(`\n✓ Found unprocessed Jupiter video: ${result.videoId}`);
+                    return [result.videoId];
                 }
             }
         }
@@ -363,75 +364,54 @@ async function getLatestMeetingId() {
         console.error(`Already processed ${processedIds.size} meetings, will skip those...`);
     }
 
-    // Get the lowest processed ID to establish a baseline for "last month"
-    // We only want to check videos NEWER than our oldest processed video minus ~5000 IDs
-    // (roughly 1 month of videos across all Swagit municipalities)
-    const highestProcessed = getHighestProcessedVideoId();
-    const oneMonthBuffer = 5000; // ~1 month worth of video IDs across all municipalities
-    const minimumVideoId = Math.max(highestProcessed - oneMonthBuffer, 360000); // Don't go below baseline
+    console.error(`Looking for latest unprocessed Jupiter video...`);
 
-    console.error(`Looking for videos from last month (ID >= ${minimumVideoId})...`);
-
-    // Collect unprocessed Jupiter videos from the Swagit view page
-    let allUnprocessedVideos = [];
-
+    // Simple approach: get videos from page and find the latest unprocessed one
     const pageVideoIds = await getVideosFromPage();
 
     if (pageVideoIds.length > 0) {
-        // Only check videos within the last month range
-        const recentPageVideos = pageVideoIds.filter(id => parseInt(id) >= minimumVideoId);
-        const maxToCheck = Math.min(recentPageVideos.length, 30);
-        console.error(`Checking ${maxToCheck} recent videos from page...`);
+        // Filter out already processed videos
+        const unprocessedVideos = pageVideoIds.filter(id => !processedIds.has(id));
+        console.error(`Checking ${unprocessedVideos.length} unprocessed videos (out of ${pageVideoIds.length} total)...`);
 
-        for (let i = 0; i < maxToCheck; i++) {
-            const videoId = recentPageVideos[i];
+        // Check in parallel batches for speed
+        const batchSize = 20;
+        for (let i = 0; i < unprocessedVideos.length; i += batchSize) {
+            const batch = unprocessedVideos.slice(i, i + batchSize);
+            const results = await Promise.all(batch.map(id => checkVideoOwnership(id)));
 
-            if (processedIds.has(videoId)) {
-                continue; // Already processed, skip silently
+            // Find Jupiter videos in this batch
+            const jupiterVideos = results.filter(r => r.isJupiter).map(r => r.videoId);
+
+            if (jupiterVideos.length > 0) {
+                // Return the highest ID (latest) Jupiter video found
+                const latestVideo = jupiterVideos.sort((a, b) => parseInt(b) - parseInt(a))[0];
+                console.error(`\n✓ Found latest unprocessed Jupiter video: ${latestVideo}`);
+                console.log(latestVideo);
+                return;
             }
 
-            const result = await checkVideoOwnership(videoId);
-            if (result.isJupiter) {
-                console.error(`  ✓ Found unprocessed Jupiter video: ${videoId}`);
-                allUnprocessedVideos.push(videoId);
-            }
+            console.error(`  Checked batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(unprocessedVideos.length/batchSize)} - no Jupiter videos yet`);
         }
     }
 
-    // If page didn't find anything, do a targeted scan from highest processed
-    if (allUnprocessedVideos.length === 0) {
-        const lastScan = await getLastScanState();
-        let startId = highestProcessed + 1;
+    // Fallback: scan from highest processed ID
+    const highestProcessed = getHighestProcessedVideoId();
+    const startId = highestProcessed + 1;
+    console.error(`\nPage didn't yield new videos. Scanning from ${startId}...`);
 
-        if (lastScan && lastScan.highestScannedId) {
-            const lastScanAge = Date.now() - new Date(lastScan.scannedAt).getTime();
-            const hoursSinceLastScan = lastScanAge / (1000 * 60 * 60);
+    const newVideos = await scanForNewVideos(startId, processedIds);
 
-            if (hoursSinceLastScan < 168) { // 7 days
-                const scanBasedStart = lastScan.highestScannedId - 500;
-                if (scanBasedStart > startId) {
-                    startId = scanBasedStart;
-                    console.error(`  Using cached scan state: continuing from ~${startId}`);
-                }
-            }
-        }
-
-        console.error(`\nPage didn't yield new videos. Scanning from ${startId}...`);
-        const newVideos = await scanForNewVideos(startId, processedIds);
-        allUnprocessedVideos = allUnprocessedVideos.concat(newVideos);
-    }
-
-    if (allUnprocessedVideos.length > 0) {
-        // Return the OLDEST (smallest ID) unprocessed video - process in order
-        const sortedVideos = [...new Set(allUnprocessedVideos)].sort((a, b) => parseInt(a) - parseInt(b));
-        console.error(`\nFound ${sortedVideos.length} unprocessed Jupiter video(s): ${sortedVideos.join(', ')}`);
-        console.error(`Processing oldest first: ${sortedVideos[0]}`);
-        console.log(sortedVideos[0]);
+    if (newVideos.length > 0) {
+        // Return the latest (highest ID) video
+        const latestVideo = newVideos.sort((a, b) => parseInt(b) - parseInt(a))[0];
+        console.error(`\n✓ Found latest unprocessed Jupiter video: ${latestVideo}`);
+        console.log(latestVideo);
         return;
     }
 
     // No new meetings found
-    console.error('NO_NEW_MEETINGS: All recent videos already processed or no new Jupiter FL videos found');
+    console.error('NO_NEW_MEETINGS: All videos already processed or no new Jupiter FL videos found');
     process.exit(2);
 }
 

@@ -646,8 +646,55 @@ app.get('/api/agents/town-meeting/upcoming', async (req, res) => {
 });
 
 /**
+ * DELETE /api/agents/town-meeting/meetings/:id
+ * Delete any meeting (processed or upcoming) from Google Sheets
+ */
+app.delete('/api/agents/town-meeting/meetings/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const success = await deleteMeetingFromSheets(id);
+    if (!success) {
+      return res.status(404).json({ error: 'Meeting not found' });
+    }
+
+    // Also remove from local file if it exists
+    const meetingsFile = path.join(__dirname, '..', 'data', 'meetings.json');
+    if (fs.existsSync(meetingsFile)) {
+      let registry = JSON.parse(fs.readFileSync(meetingsFile, 'utf-8'));
+      const index = registry.findIndex(m => m.id === id);
+      if (index !== -1) {
+        registry.splice(index, 1);
+        fs.writeFileSync(meetingsFile, JSON.stringify(registry, null, 2));
+      }
+    }
+
+    // Also remove local transcript/analysis/ideas files if they exist
+    const dataDir = path.join(__dirname, '..', 'data', 'swagit');
+    const filesToDelete = [
+      `${id}_transcript.json`,
+      `${id}_analysis.json`,
+      `${id}_ideas.json`,
+      `${id}.vtt`
+    ];
+    for (const file of filesToDelete) {
+      const filePath = path.join(dataDir, file);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        console.log(`Deleted: ${file}`);
+      }
+    }
+
+    console.log(`Deleted meeting ${id}`);
+    res.json({ success: true, deleted: id });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
  * DELETE /api/agents/town-meeting/upcoming/:id
- * Delete an upcoming meeting from Google Sheets
+ * Delete an upcoming meeting from Google Sheets (alias for backwards compat)
  */
 app.delete('/api/agents/town-meeting/upcoming/:id', async (req, res) => {
   try {

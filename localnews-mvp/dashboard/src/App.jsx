@@ -258,6 +258,9 @@ function App() {
   const [crimeWatchView, setCrimeWatchView] = useState('incidents'); // 'incidents', 'articles', or 'settings'
   const [crimeIncidents, setCrimeIncidents] = useState([]);
   const [crimeSettings, setCrimeSettings] = useState(null);
+  const [wastewaterExpanded, setWastewaterExpanded] = useState(false); // Wastewater Health dropdown
+  const [wastewaterView, setWastewaterView] = useState('dashboard'); // 'dashboard' or 'articles'
+  const [wastewaterData, setWastewaterData] = useState(null);
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [selectedIncident, setSelectedIncident] = useState(null);
   const [filterStatus, setFilterStatus] = useState('draft');
@@ -265,7 +268,8 @@ function App() {
 
   const [agentStatus, setAgentStatus] = useState({
     crimeWatch: { lastRun: null, running: false, error: null, lastResult: null },
-    townMeeting: { lastRun: null, running: false, error: null, lastResult: null }
+    townMeeting: { lastRun: null, running: false, error: null, lastResult: null },
+    wastewaterHealth: { lastRun: null, running: false, error: null, lastResult: null }
   });
 
   // Toast notifications
@@ -280,6 +284,7 @@ function App() {
   // Track previous running state to detect completion
   const [prevRunning, setPrevRunning] = useState({
     crimeWatch: false,
+    wastewaterHealth: false,
     townMeeting: false
   });
 
@@ -325,12 +330,14 @@ function App() {
       fetchUpcomingMeetings();
       fetchCrimeIncidents();
       fetchCrimeSettings();
+      fetchWastewaterData();
       const interval = setInterval(() => {
         fetchAgentStatus();
         fetchIdeas();
         fetchMeetings();
         fetchUpcomingMeetings();
         fetchCrimeIncidents();
+        fetchWastewaterData();
       }, 5000);
       return () => clearInterval(interval);
     } else {
@@ -373,12 +380,29 @@ function App() {
       }
     }
 
+    // Wastewater Health completed
+    if (prevRunning.wastewaterHealth && !agentStatus.wastewaterHealth.running) {
+      if (agentStatus.wastewaterHealth.error) {
+        setResultModal({ type: 'error', title: 'Health Monitor Failed', message: agentStatus.wastewaterHealth.error });
+      } else if (agentStatus.wastewaterHealth.lastResult) {
+        const result = agentStatus.wastewaterHealth.lastResult;
+        setResultModal({ type: result.type, title: 'Health Monitor Complete', message: result.message, count: result.count });
+        if (result.count > 0) {
+          fetchArticles();
+          fetchWastewaterData();
+        }
+      } else {
+        setResultModal({ type: 'success', title: 'Health Monitor Complete', message: 'Agent completed successfully' });
+      }
+    }
+
     // Update previous running state
     setPrevRunning({
       crimeWatch: agentStatus.crimeWatch.running,
-      townMeeting: agentStatus.townMeeting.running
+      townMeeting: agentStatus.townMeeting.running,
+      wastewaterHealth: agentStatus.wastewaterHealth.running
     });
-  }, [agentStatus.crimeWatch.running, agentStatus.townMeeting.running]);
+  }, [agentStatus.crimeWatch.running, agentStatus.townMeeting.running, agentStatus.wastewaterHealth.running]);
 
   function addToast(type, title, message) {
     const id = Date.now();
@@ -488,6 +512,16 @@ function App() {
       }
     } catch (err) {
       console.error('Failed to fetch crime settings:', err);
+    }
+  }
+
+  async function fetchWastewaterData() {
+    try {
+      const res = await fetch(`${API_URL}/agents/wastewater-health/data`);
+      const data = await res.json();
+      setWastewaterData(data.data || null);
+    } catch (err) {
+      console.error('Failed to fetch wastewater data:', err);
     }
   }
 
@@ -601,9 +635,15 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
+
+      // Map agent name to status key
+      const statusKey = agent === 'crime-watch' ? 'crimeWatch'
+        : agent === 'wastewater-health' ? 'wastewaterHealth'
+        : 'townMeeting';
+
       setAgentStatus(prev => ({
         ...prev,
-        [agent === 'crime-watch' ? 'crimeWatch' : 'townMeeting']: { ...prev[agent === 'crime-watch' ? 'crimeWatch' : 'townMeeting'], running: true }
+        [statusKey]: { ...prev[statusKey], running: true }
       }));
     } catch (err) {
       addToast('error', 'Agent', `Failed to start ${agent} agent`);
@@ -824,6 +864,48 @@ function App() {
               </div>
             )}
           </div>
+
+          <div className="nav-section">
+            <button
+              className={`nav-item nav-parent ${wastewaterExpanded ? 'expanded' : ''}`}
+              onClick={() => setWastewaterExpanded(!wastewaterExpanded)}
+            >
+              <span className="nav-parent-text">Health Monitor Agent</span>
+              <span className={`nav-arrow ${wastewaterExpanded ? 'expanded' : ''}`}>▶</span>
+            </button>
+            {wastewaterExpanded && (
+              <div className="nav-children">
+                <button
+                  className={`nav-item nav-sub ${viewSource === 'wastewater-health' && wastewaterView === 'dashboard' ? 'active' : ''}`}
+                  onClick={() => {
+                    setViewSource('wastewater-health');
+                    setWastewaterView('dashboard');
+                    setShowSettings(false);
+                    setSelectedMeeting(null);
+                    setSelectedIncident(null);
+                    setSelectedIdea(null);
+                    setSelectedArticle(null);
+                  }}
+                >
+                  Dashboard
+                </button>
+                <button
+                  className={`nav-item nav-sub ${viewSource === 'wastewater-health' && wastewaterView === 'articles' ? 'active' : ''}`}
+                  onClick={() => {
+                    setViewSource('wastewater-health');
+                    setWastewaterView('articles');
+                    setShowSettings(false);
+                    setSelectedMeeting(null);
+                    setSelectedIncident(null);
+                    setSelectedIdea(null);
+                    setSelectedArticle(null);
+                  }}
+                >
+                  Articles <span className="badge">{getCount('wastewater-health')}</span>
+                </button>
+              </div>
+            )}
+          </div>
         </nav>
 
         <div className="sidebar-footer">
@@ -835,7 +917,7 @@ function App() {
             </div>
           </div>
           <div className="sidebar-footer-actions">
-            <button className="btn-refresh" onClick={() => { fetchArticles(); fetchAgentStatus(); fetchIdeas(); fetchMeetings(); fetchUpcomingMeetings(); }}>
+            <button className="btn-refresh" onClick={() => { fetchArticles(); fetchAgentStatus(); fetchIdeas(); fetchMeetings(); fetchUpcomingMeetings(); fetchWastewaterData(); }}>
               Refresh
             </button>
             <button className="btn-logout" onClick={handleLogout}>
@@ -924,6 +1006,30 @@ function App() {
               />
             </div>
           </>
+        ) : viewSource === 'wastewater-health' && wastewaterView === 'dashboard' ? (
+          <>
+            <header className="feed-header">
+              <div className="feed-title-row">
+                <div className="feed-title-block">
+                  <h2>Wastewater Health Monitor</h2>
+                  <p className="feed-subtitle">Palm Beach County Disease Surveillance</p>
+                </div>
+                <div className="feed-actions">
+                  <AgentControl
+                    name="Health Agent"
+                    status={agentStatus.wastewaterHealth}
+                    onRun={() => runAgent('wastewater-health')}
+                  />
+                </div>
+              </div>
+            </header>
+            <div className="feed-content">
+              <WastewaterDashboardView
+                data={wastewaterData}
+                lastRun={agentStatus.wastewaterHealth.lastRun}
+              />
+            </div>
+          </>
         ) : !selectedArticle ? (
           <>
             <header className="feed-header">
@@ -933,6 +1039,7 @@ function App() {
                     {viewSource === 'town-meeting' && townHallView === 'meetings' && 'Meetings'}
                     {viewSource === 'town-meeting' && townHallView === 'articles' && 'Town Hall Articles'}
                     {viewSource === 'crime-watch' && crimeWatchView === 'articles' && 'Crime Watch Articles'}
+                    {viewSource === 'wastewater-health' && wastewaterView === 'articles' && 'Health Monitor Articles'}
                   </h2>
                 </div>
                 <div className="feed-actions">
@@ -948,6 +1055,13 @@ function App() {
                       name="Crime Agent"
                       status={agentStatus.crimeWatch}
                       onRun={() => runAgent('crime-watch')}
+                    />
+                  )}
+                  {viewSource === 'wastewater-health' && (
+                    <AgentControl
+                      name="Health Agent"
+                      status={agentStatus.wastewaterHealth}
+                      onRun={() => runAgent('wastewater-health')}
                     />
                   )}
                 </div>
@@ -1879,6 +1993,180 @@ function getSeverityClass(crimeClass) {
   if (high.some(c => crimeClass?.includes(c))) return 'high';
   if (medium.some(c => crimeClass?.includes(c))) return 'medium';
   return 'low';
+}
+
+// Wastewater Health Dashboard View
+function WastewaterDashboardView({ data, lastRun }) {
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const formatLastRun = (dateStr) => {
+    if (!dateStr) return 'Never';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffDays > 0) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    if (diffHours > 0) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    return 'Just now';
+  };
+
+  const getTrendIcon = (trend) => {
+    if (trend === 'increasing') return '↑';
+    if (trend === 'decreasing') return '↓';
+    return '→';
+  };
+
+  const getTrendClass = (trend) => {
+    if (trend === 'increasing') return 'trend-up';
+    if (trend === 'decreasing') return 'trend-down';
+    return 'trend-stable';
+  };
+
+  const getLevelClass = (level) => {
+    if (!level) return 'level-unknown';
+    const lowerLevel = level.toLowerCase();
+    if (lowerLevel.includes('very high')) return 'level-very-high';
+    if (lowerLevel.includes('high')) return 'level-high';
+    if (lowerLevel.includes('moderate')) return 'level-moderate';
+    if (lowerLevel.includes('low')) return 'level-low';
+    return 'level-unknown';
+  };
+
+  if (!data) {
+    return (
+      <div className="empty-state">
+        <div className="empty-icon">🚰</div>
+        <h3>No Wastewater Data Available</h3>
+        <p>Click "Run Agent" to fetch the latest wastewater surveillance data from the CDC for Palm Beach County.</p>
+        <p className="empty-note">This agent monitors COVID-19 and Influenza levels in local wastewater to provide early warning of disease trends.</p>
+      </div>
+    );
+  }
+
+  const summary = data.summary || {};
+  const covidTrend = summary.trends?.covid;
+  const fluTrend = summary.trends?.influenza;
+  const alerts = summary.alerts || [];
+
+  return (
+    <div className="wastewater-dashboard">
+      <div className="dashboard-meta">
+        <span className="meta-item">📍 {summary.location || 'Palm Beach County, FL'}</span>
+        <span className="meta-item">🕐 Last Updated: {formatLastRun(lastRun)}</span>
+        <span className="meta-item">📅 Data Period: {data.metadata?.dateRange?.start} to {data.metadata?.dateRange?.end}</span>
+      </div>
+
+      {alerts.length > 0 && (
+        <div className="alerts-section">
+          <h3>⚠️ Active Alerts</h3>
+          <div className="alerts-list">
+            {alerts.map((alert, idx) => (
+              <div key={idx} className={`alert-card alert-${alert.level?.toLowerCase().replace(' ', '-') || 'info'}`}>
+                <span className="alert-pathogen">{alert.pathogen}</span>
+                <span className="alert-message">{alert.message}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="pathogen-cards">
+        <div className="pathogen-card covid">
+          <div className="pathogen-header">
+            <span className="pathogen-icon">🦠</span>
+            <h3>SARS-CoV-2 (COVID-19)</h3>
+          </div>
+          {covidTrend ? (
+            <div className="pathogen-content">
+              <div className="pathogen-stat">
+                <span className="stat-label">Current Level</span>
+                <span className={`stat-value ${getLevelClass(covidTrend.latestLevel)}`}>
+                  {covidTrend.latestLevel || 'Unknown'}
+                </span>
+              </div>
+              <div className="pathogen-stat">
+                <span className="stat-label">Trend</span>
+                <span className={`stat-value trend ${getTrendClass(covidTrend.trend)}`}>
+                  {getTrendIcon(covidTrend.trend)} {covidTrend.trend || 'Unknown'}
+                </span>
+              </div>
+              <div className="pathogen-stat">
+                <span className="stat-label">Latest Data</span>
+                <span className="stat-value">{formatDate(covidTrend.latestDate)}</span>
+              </div>
+              <div className="pathogen-stat">
+                <span className="stat-label">Data Points</span>
+                <span className="stat-value">{summary.dataPoints?.covid || 0}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="pathogen-empty">
+              <p>No COVID-19 data available for this region</p>
+            </div>
+          )}
+        </div>
+
+        <div className="pathogen-card influenza">
+          <div className="pathogen-header">
+            <span className="pathogen-icon">🤧</span>
+            <h3>Influenza A</h3>
+          </div>
+          {fluTrend ? (
+            <div className="pathogen-content">
+              <div className="pathogen-stat">
+                <span className="stat-label">Trend</span>
+                <span className={`stat-value trend ${getTrendClass(fluTrend.trend)}`}>
+                  {getTrendIcon(fluTrend.trend)} {fluTrend.trend || 'Unknown'}
+                </span>
+              </div>
+              {fluTrend.percentChange && (
+                <div className="pathogen-stat">
+                  <span className="stat-label">Change</span>
+                  <span className={`stat-value ${parseFloat(fluTrend.percentChange) > 0 ? 'trend-up' : 'trend-down'}`}>
+                    {parseFloat(fluTrend.percentChange) > 0 ? '+' : ''}{fluTrend.percentChange}%
+                  </span>
+                </div>
+              )}
+              <div className="pathogen-stat">
+                <span className="stat-label">Latest Data</span>
+                <span className="stat-value">{formatDate(fluTrend.latestDate)}</span>
+              </div>
+              <div className="pathogen-stat">
+                <span className="stat-label">Data Points</span>
+                <span className="stat-value">{summary.dataPoints?.influenza || 0}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="pathogen-empty">
+              <p>No Influenza data available for this region</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="data-source-info">
+        <h4>About This Data</h4>
+        <p>
+          Wastewater surveillance provides early warning of disease outbreaks by detecting viral genetic material
+          in sewage before people show symptoms or seek testing. This data comes from the CDC National Wastewater
+          Surveillance System (NWSS) and monitors treatment plants serving Palm Beach County, Florida.
+        </p>
+        <p className="source-link">
+          Data Source: <a href="https://data.cdc.gov/browse?q=wastewater" target="_blank" rel="noopener noreferrer">CDC NWSS Open Data</a>
+        </p>
+      </div>
+    </div>
+  );
 }
 
 // Crime Incident Detail View - similar to MeetingDetailView

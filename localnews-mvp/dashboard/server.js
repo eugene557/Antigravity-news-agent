@@ -178,7 +178,8 @@ async function getTranscriptFromSupabase(videoId) {
 // Track agent run status
 const agentStatus = {
   crimeWatch: { lastRun: null, running: false, error: null, lastResult: null },
-  townMeeting: { lastRun: null, running: false, error: null, lastResult: null, currentMeeting: null }
+  townMeeting: { lastRun: null, running: false, error: null, lastResult: null, currentMeeting: null },
+  wastewaterHealth: { lastRun: null, running: false, error: null, lastResult: null }
 };
 
 const SETTINGS_FILE = path.join(__dirname, '..', 'data', 'town_meeting_settings.json');
@@ -192,6 +193,7 @@ try {
     const saved = JSON.parse(fs.readFileSync(statusFile, 'utf-8'));
     agentStatus.crimeWatch.lastRun = saved.crimeWatch?.lastRun || null;
     agentStatus.townMeeting.lastRun = saved.townMeeting?.lastRun || null;
+    agentStatus.wastewaterHealth.lastRun = saved.wastewaterHealth?.lastRun || null;
   }
 } catch (e) {
   console.log('No saved agent status found');
@@ -200,7 +202,8 @@ try {
 function saveStatus() {
   fs.writeFileSync(statusFile, JSON.stringify({
     crimeWatch: { lastRun: agentStatus.crimeWatch.lastRun },
-    townMeeting: { lastRun: agentStatus.townMeeting.lastRun }
+    townMeeting: { lastRun: agentStatus.townMeeting.lastRun },
+    wastewaterHealth: { lastRun: agentStatus.wastewaterHealth.lastRun }
   }, null, 2));
 }
 
@@ -1842,6 +1845,88 @@ app.post('/api/agents/crime-watch/run', async (req, res) => {
 });
 
 /**
+ * GET /api/agents/wastewater-health/data
+ * Get latest wastewater health data
+ */
+app.get('/api/agents/wastewater-health/data', async (req, res) => {
+  try {
+    const dataDir = path.join(__dirname, '..', 'data', 'wastewater');
+
+    if (!fs.existsSync(dataDir)) {
+      return res.json({ data: null, message: 'No wastewater data available yet' });
+    }
+
+    const files = fs.readdirSync(dataDir).filter(f => f.startsWith('wastewater_') && f.endsWith('.json'));
+    if (files.length === 0) {
+      return res.json({ data: null, message: 'No wastewater data available yet' });
+    }
+
+    const latestFile = files.sort().reverse()[0];
+    const filePath = path.join(dataDir, latestFile);
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+
+    res.json({ data, file: latestFile });
+  } catch (e) {
+    console.error('Error fetching wastewater data:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * POST /api/agents/wastewater-health/run
+ * Run the wastewater health agent
+ */
+app.post('/api/agents/wastewater-health/run', async (req, res) => {
+  if (agentStatus.wastewaterHealth.running) {
+    return res.status(409).json({ error: 'Agent already running' });
+  }
+
+  agentStatus.wastewaterHealth.running = true;
+  agentStatus.wastewaterHealth.error = null;
+  res.json({ status: 'started' }); // Respond immediately
+
+  // Run in background
+  (async () => {
+    const agentDir = path.join(__dirname, '..', 'agents', 'wastewater-health');
+    const dataDir = path.join(__dirname, '..', 'data', 'wastewater');
+
+    // Ensure data directory exists
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+
+    try {
+      // Run scraper
+      console.log('Running wastewater-health scraper...');
+      await runScript(agentDir, 'scrape.js');
+
+      // Find the latest data file
+      const files = fs.readdirSync(dataDir).filter(f => f.startsWith('wastewater_') && f.endsWith('.json'));
+      if (files.length === 0) {
+        throw new Error('No wastewater data file generated');
+      }
+      const latestFile = files.sort().reverse()[0];
+      const dataPath = path.join(dataDir, latestFile);
+
+      // Run generator
+      console.log('Running wastewater-health generator...');
+      const result = await runScript(agentDir, 'generate.js', [dataPath]);
+
+      agentStatus.wastewaterHealth.lastRun = new Date().toISOString();
+      agentStatus.wastewaterHealth.running = false;
+      agentStatus.wastewaterHealth.lastResult = parseAgentResult(result.stdout, 'wastewater-health');
+      saveStatus();
+      console.log('Wastewater health agent completed successfully');
+    } catch (error) {
+      console.error('Wastewater health agent failed:', error.message);
+      agentStatus.wastewaterHealth.running = false;
+      agentStatus.wastewaterHealth.error = error.message;
+      saveStatus();
+    }
+  })();
+});
+
+/**
  * POST /api/agents/town-meeting/run
  * Run the town meeting agent
  */
@@ -2044,6 +2129,53 @@ function parseAgentResult(output, type) {
 
     console.log('[parseAgentResult] No pattern matched for town-meeting');
     return { type: 'info', message: 'Scan complete - no new articles', count: 0 };
+  }
+
+  if (type === 'wastewater-health') {
+    // Check for "Article saved to Supabase" pattern
+    if (output.includes('Article saved to Supabase')) {
+      console.log('[parseAgentResult] Found: Article saved to Supabase');
+      return {
+        type: 'success',
+        message: 'Generated new wastewater health brief',
+        count: 1
+      };
+    }
+
+    // Check for "Added X new article to sheet" pattern
+    const addedMatch = output.match(/Added\s+(\d+)\s+new article/i);
+    if (addedMatch) {
+      const count = parseInt(addedMatch[1]);
+      console.log(`[parseAgentResult] Found: Added ${count} articles`);
+      return {
+        type: 'success',
+        message: `Generated ${count} new health brief${count !== 1 ? 's' : ''}`,
+        count
+      };
+    }
+
+    // Check for already exists
+    if (output.includes('already exists. Skipping generation')) {
+      console.log('[parseAgentResult] Found: Already exists');
+      return {
+        type: 'info',
+        message: 'Health brief already generated for this week',
+        count: 0
+      };
+    }
+
+    // Check for no data
+    if (output.includes('No data available') || output.includes('Found 0 COVID') && output.includes('Found 0 Influenza')) {
+      console.log('[parseAgentResult] Found: No data');
+      return {
+        type: 'info',
+        message: 'No wastewater data available for Palm Beach County',
+        count: 0
+      };
+    }
+
+    console.log('[parseAgentResult] No pattern matched for wastewater-health');
+    return { type: 'info', message: 'Health scan complete', count: 0 };
   }
 
   return { type: 'info', message: 'Agent completed', count: null };

@@ -18,10 +18,50 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 import OpenAI from 'openai';
 import { appendArticle, findArticleBySourceUrl } from '../../lib/sheets.js';
+import { createClient } from '@supabase/supabase-js';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
+
+// Supabase setup for fetching ideas
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+
+// Fetch ideas from Supabase when local file doesn't exist
+async function getIdeasFromSupabase(videoId) {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('ideas')
+      .select('*')
+      .eq('video_id', videoId);
+
+    if (error) {
+      console.error('Supabase ideas fetch error:', error.message);
+      return null;
+    }
+
+    if (data && data.length > 0) {
+      console.log(`☁️  Loaded ${data.length} ideas from Supabase for video ${videoId}`);
+      return {
+        metadata: { videoId, generatedAt: new Date().toISOString() },
+        ideas: data.map(row => ({
+          id: row.idea_id,
+          title: row.title,
+          summary: row.summary,
+          event: row.summary, // Use summary as event fallback
+          angles: row.angles || []
+        }))
+      };
+    }
+    return null;
+  } catch (e) {
+    console.error('Supabase ideas fetch failed:', e.message);
+    return null;
+  }
+}
 
 async function loadPrompt() {
   const promptPath = path.join(__dirname, '../../prompts/generate-article.txt');
@@ -180,24 +220,52 @@ async function main() {
 
     const contextText = contextData.fullText || contextData.analysis?.meeting_summary || '';
 
-    // 2. Find Idea and Angle - check per-meeting ideas file first
+    // 2. Find Idea and Angle - check per-meeting ideas file first, then Supabase
     const videoId = process.env.VIDEO_ID || contextData.videoId || contextData.metadata?.videoId;
-    let ideasPath = path.join(__dirname, '../../data/swagit/current_ideas.json');
+    let ideasData = null;
 
-    // Try per-meeting ideas file first
+    // Try local file first
     if (videoId) {
       const meetingIdeasPath = path.join(__dirname, `../../data/swagit/${videoId}_ideas.json`);
       if (fs.existsSync(meetingIdeasPath)) {
-        ideasPath = meetingIdeasPath;
+        ideasData = JSON.parse(fs.readFileSync(meetingIdeasPath, 'utf-8'));
         console.log(`📂 Using meeting-specific ideas: ${videoId}_ideas.json`);
       }
     }
 
-    if (!fs.existsSync(ideasPath)) throw new Error('Ideas file not found');
-    const ideasData = JSON.parse(fs.readFileSync(ideasPath, 'utf-8'));
+    // Fallback to current_ideas.json (only if it matches our videoId)
+    if (!ideasData) {
+      const currentIdeasPath = path.join(__dirname, '../../data/swagit/current_ideas.json');
+      if (fs.existsSync(currentIdeasPath)) {
+        const currentData = JSON.parse(fs.readFileSync(currentIdeasPath, 'utf-8'));
+        // Only use if videoId matches
+        if (currentData.metadata?.videoId === videoId) {
+          ideasData = currentData;
+          console.log(`📂 Using current_ideas.json (matches video ${videoId})`);
+        } else {
+          console.log(`📂 current_ideas.json is for video ${currentData.metadata?.videoId}, not ${videoId}`);
+        }
+      }
+    }
+
+    // Fallback to Supabase
+    if (!ideasData && videoId) {
+      console.log(`📂 Local ideas not found, checking Supabase for video ${videoId}...`);
+      ideasData = await getIdeasFromSupabase(videoId);
+
+      // Save to local file for future use
+      if (ideasData) {
+        const dataDir = path.join(__dirname, '../../data/swagit');
+        fs.mkdirSync(dataDir, { recursive: true });
+        fs.writeFileSync(path.join(dataDir, `${videoId}_ideas.json`), JSON.stringify(ideasData, null, 2));
+        console.log(`☁️  Restored ideas from Supabase to: ${videoId}_ideas.json`);
+      }
+    }
+
+    if (!ideasData) throw new Error('Ideas not found (checked local files and Supabase)');
 
     const idea = ideasData.ideas.find(i => String(i.id) === String(ideaId));
-    if (!idea) throw new Error(`Idea ${ideaId} not found in ${path.basename(ideasPath)}`);
+    if (!idea) throw new Error(`Idea ${ideaId} not found`);
 
     const angle = idea.angles.find(a => a.name === angleName);
     if (!angle) throw new Error(`Angle "${angleName}" not found for idea ${ideaId}`);

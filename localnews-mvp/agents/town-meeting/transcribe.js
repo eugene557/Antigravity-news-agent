@@ -25,6 +25,41 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 import OpenAI from 'openai';
+import { createClient } from '@supabase/supabase-js';
+
+// Supabase setup for transcript persistence
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+
+// Save transcript to Supabase for persistence across deployments
+async function saveTranscriptToSupabase(videoId, fullText, segments, durationMinutes) {
+  if (!supabase) {
+    console.log('⚠️  Supabase not configured - transcript only saved locally');
+    return false;
+  }
+
+  try {
+    const { error } = await supabase
+      .from('transcripts')
+      .upsert({
+        video_id: videoId,
+        full_text: fullText,
+        segments: segments,
+        duration_seconds: durationMinutes * 60
+      }, { onConflict: 'video_id' });
+
+    if (error) {
+      console.error('❌ Supabase transcript save error:', error.message);
+      return false;
+    }
+    console.log(`☁️  Transcript saved to Supabase for video ${videoId}`);
+    return true;
+  } catch (e) {
+    console.error('❌ Supabase transcript save failed:', e.message);
+    return false;
+  }
+}
 
 const execAsync = promisify(exec);
 
@@ -444,6 +479,9 @@ async function main() {
       console.log(`   Segments: ${segments.length}`);
       console.log(`   Cost: $0.00 (used existing VTT)`);
 
+      // Save to Supabase for persistence across deployments
+      await saveTranscriptToSupabase(videoName, fullText, segments, estimatedDuration);
+
       const textOutputPath = finalOutputPath.replace('.json', '.txt');
       const textContent = segments.map(s => `[${s.timestamp}] ${s.text}`).join('\n\n');
       fs.writeFileSync(textOutputPath, textContent);
@@ -499,6 +537,9 @@ async function main() {
     // Step 5: Save output
     fs.writeFileSync(finalOutputPath, JSON.stringify(output, null, 2));
     console.log(`\n✅ Transcript saved to: ${finalOutputPath}`);
+
+    // Save to Supabase for persistence across deployments
+    await saveTranscriptToSupabase(videoName, fullText, segments, output.durationMinutes);
 
     const textOutputPath = finalOutputPath.replace('.json', '.txt');
     const textContent = segments.map(s => `[${s.timestamp}] ${s.text}`).join('\n\n');

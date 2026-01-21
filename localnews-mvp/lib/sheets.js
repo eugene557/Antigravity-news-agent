@@ -13,6 +13,49 @@
  */
 
 import { google } from 'googleapis';
+import { createClient } from '@supabase/supabase-js';
+
+// Supabase setup for dual-write
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+
+if (supabase) {
+  console.log('📦 Sheets lib: Supabase client initialized');
+} else {
+  console.log('⚠️  Sheets lib: Supabase not configured (missing SUPABASE_URL or SUPABASE_SERVICE_KEY)');
+}
+
+// Save article to Supabase (dual-write helper)
+async function saveArticleToSupabase(article) {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('articles')
+      .upsert({
+        agent_source: article.agentSource,
+        headline: article.headline,
+        body: article.body,
+        summary: article.summary,
+        twitter: article.twitter,
+        facebook: article.facebook,
+        instagram: article.instagram,
+        source_url: article.sourceUrl,
+        status: article.status || 'draft'
+      }, { onConflict: 'source_url' })
+      .select();
+
+    if (error) {
+      console.error('Supabase article save error:', error.message);
+      return null;
+    }
+    console.log(`📦 Article saved to Supabase: ${article.headline?.substring(0, 50)}...`);
+    return data;
+  } catch (e) {
+    console.error('Supabase article save failed:', e.message);
+    return null;
+  }
+}
 
 // Column mapping (0-indexed)
 const COLUMNS = {
@@ -169,6 +212,9 @@ async function appendArticle(article) {
   const rowMatch = updatedRange.match(/(\d+)$/);
   const rowNumber = rowMatch ? parseInt(rowMatch[1]) : null;
 
+  // Dual-write to Supabase
+  await saveArticleToSupabase(article);
+
   return {
     success: true,
     rowNumber,
@@ -212,6 +258,11 @@ async function appendArticles(articles) {
       values: rows
     }
   });
+
+  // Dual-write to Supabase
+  for (const article of articles) {
+    saveArticleToSupabase(article);
+  }
 
   return {
     success: true,

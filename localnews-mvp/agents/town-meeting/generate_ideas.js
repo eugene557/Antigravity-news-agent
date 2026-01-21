@@ -22,6 +22,48 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
 
+// Persist ideas to Google Sheets via API (for Railway deployment persistence)
+async function persistIdeasToSheets(videoId, ideas) {
+    const port = process.env.PORT || 8080;
+    const data = JSON.stringify({ videoId, ideas });
+
+    return new Promise((resolve) => {
+        const req = http.request({
+            hostname: 'localhost',
+            port: port,
+            path: '/api/agents/town-meeting/ideas',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(data)
+            },
+            timeout: 10000
+        }, (res) => {
+            let body = '';
+            res.on('data', (chunk) => { body += chunk; });
+            res.on('end', () => {
+                if (res.statusCode === 200) {
+                    console.log(`✅ Persisted ${ideas.length} ideas to Google Sheets`);
+                } else {
+                    console.error(`⚠️ Failed to persist ideas to Sheets: ${res.statusCode}`);
+                }
+                resolve();
+            });
+        });
+        req.on('error', (e) => {
+            console.error(`⚠️ Could not persist ideas to Sheets: ${e.message}`);
+            resolve();
+        });
+        req.on('timeout', () => {
+            req.destroy();
+            console.error(`⚠️ Timeout persisting ideas to Sheets`);
+            resolve();
+        });
+        req.write(data);
+        req.end();
+    });
+}
+
 // Update meeting's ideasCount via API
 async function updateMeetingIdeasCount(videoId, ideasCount) {
     const port = process.env.PORT || 8080;
@@ -146,7 +188,7 @@ async function main() {
             ...result
         };
 
-        // Always save to per-meeting ideas file
+        // Always save to per-meeting ideas file (local storage)
         const meetingIdeasPath = transcriptPath.replace('_transcript.json', '_ideas.json');
         fs.writeFileSync(meetingIdeasPath, JSON.stringify(output, null, 2));
         console.log(`✅ Ideas saved to: ${meetingIdeasPath}`);
@@ -157,8 +199,14 @@ async function main() {
             console.log(`✅ Also saved to: ${outputPath}`);
         }
 
-        // Update the meeting's ideasCount in the database
+        // CRITICAL: Persist ideas to Google Sheets immediately
+        // This ensures ideas survive Railway deployments
         const ideasCount = result.ideas ? result.ideas.length : 0;
+        if (result.ideas && result.ideas.length > 0) {
+            await persistIdeasToSheets(transcript.videoId, result.ideas);
+        }
+
+        // Update the meeting's ideasCount in the database
         await updateMeetingIdeasCount(transcript.videoId, ideasCount);
 
     } catch (error) {

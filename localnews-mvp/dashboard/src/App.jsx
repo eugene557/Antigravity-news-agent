@@ -566,6 +566,29 @@ function App() {
     }
   }
 
+  async function generateArticleFromIncident(incident) {
+    try {
+      addToast('info', 'Generation', 'Generating crime brief...');
+
+      const res = await fetch(`${API_URL}/agents/crime-watch/generate-article`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ incident })
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to generate article');
+      }
+
+      const result = await res.json();
+      addToast('success', 'Generation', 'Crime brief generated successfully');
+      fetchArticles();
+      setSelectedIncident(null);
+    } catch (err) {
+      addToast('error', 'Generation', 'Failed to generate crime brief');
+    }
+  }
+
   async function runAgent(agent) {
     try {
       const body = {};
@@ -804,21 +827,6 @@ function App() {
         </nav>
 
         <div className="sidebar-footer">
-          <button
-            className={`sidebar-trash-btn ${viewSource === 'trash' ? 'active' : ''}`}
-            onClick={() => {
-              setViewSource('trash');
-              setShowSettings(false);
-              setSelectedMeeting(null);
-              setSelectedIdea(null);
-              setSelectedArticle(null);
-            }}
-          >
-            <span>Trash</span>
-            {articles.filter(a => a.status === 'discarded').length > 0 && (
-              <span className="trash-count">{articles.filter(a => a.status === 'discarded').length}</span>
-            )}
-          </button>
           <div className="user-info">
             <div className="user-avatar">{user?.name?.charAt(0).toUpperCase() || 'U'}</div>
             <div className="user-details">
@@ -862,6 +870,9 @@ function App() {
             user={user}
             onSave={saveSettings}
             onClose={() => setShowSettings(false)}
+            discardedArticles={articles.filter(a => a.status === 'discarded' && a.agentSource === 'town-meeting')}
+            onRestoreArticle={(id) => updateStatus(id, 'draft')}
+            onDeleteArticle={(id) => updateStatus(id, 'deleted')}
           />
         ) : selectedMeeting ? (
           <MeetingDetailView
@@ -880,6 +891,15 @@ function App() {
           <CrimeWatchSettingsView
             settings={crimeSettings}
             onSave={saveCrimeSettings}
+            discardedArticles={articles.filter(a => a.status === 'discarded' && a.agentSource === 'crime-watch')}
+            onRestoreArticle={(id) => updateStatus(id, 'draft')}
+            onDeleteArticle={(id) => updateStatus(id, 'deleted')}
+          />
+        ) : selectedIncident ? (
+          <CrimeIncidentDetailView
+            incident={selectedIncident}
+            onBack={() => setSelectedIncident(null)}
+            onGenerateArticle={generateArticleFromIncident}
           />
         ) : viewSource === 'crime-watch' && crimeWatchView === 'incidents' ? (
           <>
@@ -1354,10 +1374,12 @@ function isThisWeek(dateStr) {
   } catch { return false; }
 }
 
-function SettingsView({ settings, user, onSave, onClose }) {
+function SettingsView({ settings, user, onSave, onClose, discardedArticles, onRestoreArticle, onDeleteArticle }) {
   const [localSettings, setLocalSettings] = useState(settings);
   const [selectedDept, setSelectedDept] = useState(0);
   const [activeSection, setActiveSection] = useState('board');
+
+  const trashCount = discardedArticles?.length || 0;
 
   if (!localSettings) return <div className="settings-loading">Loading settings...</div>;
 
@@ -1409,6 +1431,13 @@ function SettingsView({ settings, user, onSave, onClose }) {
             >
               <span className="nav-icon">◉</span>
               Departments
+            </button>
+            <button
+              className={`settings-nav-item ${activeSection === 'discarded' ? 'active' : ''}`}
+              onClick={() => setActiveSection('discarded')}
+            >
+              <span className="nav-icon">🗑</span>
+              Discarded {trashCount > 0 && <span className="nav-badge">{trashCount}</span>}
             </button>
           </div>
         </nav>
@@ -1512,6 +1541,61 @@ function SettingsView({ settings, user, onSave, onClose }) {
             </div>
           )}
 
+          {activeSection === 'discarded' && (
+            <div className="settings-page">
+              <div className="settings-page-title">
+                <h1>Discarded Articles</h1>
+                <p>Town Meeting articles that have been discarded</p>
+              </div>
+
+              <div className="settings-card">
+                <div className="settings-card-title">
+                  <h2>Trash</h2>
+                  <span className="member-count-badge">{trashCount}</span>
+                </div>
+                <div className="settings-card-body no-padding">
+                  {trashCount === 0 ? (
+                    <div className="empty-trash-section">
+                      <span className="trash-icon-large">🗑</span>
+                      <h3>No discarded articles</h3>
+                      <p>Discarded Town Meeting articles will appear here</p>
+                    </div>
+                  ) : (
+                    <div className="discarded-articles-list">
+                      {discardedArticles.map((article) => (
+                        <div key={article.id} className="discarded-article-row">
+                          <div className="discarded-article-info">
+                            <h4>{article.headline || 'Untitled Article'}</h4>
+                            <p>{article.summary || article.body?.substring(0, 100) || 'No content'}</p>
+                            <span className="discarded-meta">
+                              Discarded {formatRelativeTime(article.updatedAt || article.createdAt)}
+                            </span>
+                          </div>
+                          <div className="discarded-article-actions">
+                            <button
+                              className="btn-restore"
+                              onClick={() => onRestoreArticle(article.id)}
+                              title="Restore to drafts"
+                            >
+                              ↩ Restore
+                            </button>
+                            <button
+                              className="btn-delete-permanent"
+                              onClick={() => onDeleteArticle(article.id)}
+                              title="Delete permanently"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </div>
@@ -1519,13 +1603,16 @@ function SettingsView({ settings, user, onSave, onClose }) {
 }
 
 // Crime Watch Settings View
-function CrimeWatchSettingsView({ settings, onSave }) {
+function CrimeWatchSettingsView({ settings, onSave, discardedArticles, onRestoreArticle, onDeleteArticle }) {
   const [localSettings, setLocalSettings] = useState(settings || {
     daysToFetch: 30,
     newsworthyCrimes: ['Assault', 'Robbery', 'Burglary', 'Motor Vehicle Theft', 'Arson', 'Homicide'],
     skipCrimes: ['Vandalism', 'Trespassing', 'Disturbing the Peace'],
     autoRun: false
   });
+  const [activeSection, setActiveSection] = useState('config');
+
+  const trashCount = discardedArticles?.length || 0;
 
   const handleSave = () => {
     onSave(localSettings);
@@ -1543,77 +1630,161 @@ function CrimeWatchSettingsView({ settings, onSave }) {
       </header>
 
       <div className="settings-body">
-        <div className="settings-main" style={{ marginLeft: 0 }}>
-          <div className="settings-page">
-            <div className="settings-page-title">
-              <h1>Data Source</h1>
-              <p>Configure how crime data is fetched from LexisNexis Community Crime Map</p>
-            </div>
-
-            <div className="settings-card">
-              <div className="settings-card-title">
-                <h2>Fetch Settings</h2>
-              </div>
-              <div className="settings-card-body">
-                <div className="settings-row">
-                  <label>Days to fetch</label>
-                  <input
-                    type="number"
-                    value={localSettings.daysToFetch}
-                    onChange={(e) => setLocalSettings({ ...localSettings, daysToFetch: parseInt(e.target.value) || 30 })}
-                    min="1"
-                    max="90"
-                    style={{ width: '100px' }}
-                  />
-                  <span className="settings-hint">How many days of incident history to fetch (1-90)</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="settings-card">
-              <div className="settings-card-title">
-                <h2>Location</h2>
-              </div>
-              <div className="settings-card-body">
-                <div className="settings-info-row">
-                  <span className="settings-label">Coverage Area</span>
-                  <span className="settings-value">Jupiter, FL (26.9342, -80.0942)</span>
-                </div>
-                <div className="settings-info-row">
-                  <span className="settings-label">Data Source</span>
-                  <span className="settings-value">LexisNexis Community Crime Map</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="settings-card">
-              <div className="settings-card-title">
-                <h2>Newsworthy Crime Types</h2>
-              </div>
-              <div className="settings-card-body">
-                <p className="settings-description">These crime types will be flagged for article generation:</p>
-                <div className="crime-types-grid">
-                  {['Assault', 'Aggravated Assault', 'Robbery', 'Burglary', 'Motor Vehicle Theft', 'Arson', 'Homicide', 'Kidnapping', 'Weapons Violation', 'Sexual Assault'].map(crime => (
-                    <label key={crime} className="crime-type-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={localSettings.newsworthyCrimes?.includes(crime) ?? true}
-                        onChange={(e) => {
-                          const crimes = localSettings.newsworthyCrimes || [];
-                          if (e.target.checked) {
-                            setLocalSettings({ ...localSettings, newsworthyCrimes: [...crimes, crime] });
-                          } else {
-                            setLocalSettings({ ...localSettings, newsworthyCrimes: crimes.filter(c => c !== crime) });
-                          }
-                        }}
-                      />
-                      {crime}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
+        <nav className="settings-nav">
+          <div className="settings-nav-section">
+            <span className="settings-nav-label">Configuration</span>
+            <button
+              className={`settings-nav-item ${activeSection === 'config' ? 'active' : ''}`}
+              onClick={() => setActiveSection('config')}
+            >
+              <span className="nav-icon">◉</span>
+              Data Source
+            </button>
+            <button
+              className={`settings-nav-item ${activeSection === 'discarded' ? 'active' : ''}`}
+              onClick={() => setActiveSection('discarded')}
+            >
+              <span className="nav-icon">🗑</span>
+              Discarded {trashCount > 0 && <span className="nav-badge">{trashCount}</span>}
+            </button>
           </div>
+        </nav>
+
+        <div className="settings-main">
+          {activeSection === 'config' && (
+            <div className="settings-page">
+              <div className="settings-page-title">
+                <h1>Data Source</h1>
+                <p>Configure how crime data is fetched from LexisNexis Community Crime Map</p>
+              </div>
+
+              <div className="settings-card">
+                <div className="settings-card-title">
+                  <h2>Fetch Settings</h2>
+                </div>
+                <div className="settings-card-body">
+                  <div className="settings-row">
+                    <label>Days to fetch</label>
+                    <input
+                      type="number"
+                      value={localSettings.daysToFetch}
+                      onChange={(e) => setLocalSettings({ ...localSettings, daysToFetch: parseInt(e.target.value) || 30 })}
+                      min="1"
+                      max="90"
+                      style={{ width: '100px' }}
+                    />
+                    <span className="settings-hint">How many days of incident history to fetch (1-90)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="settings-card">
+                <div className="settings-card-title">
+                  <h2>Location</h2>
+                </div>
+                <div className="settings-card-body">
+                  <div className="settings-info-row">
+                    <span className="settings-label">Coverage Area</span>
+                    <span className="settings-value">Jupiter, FL (26.9342, -80.0942)</span>
+                  </div>
+                  <div className="settings-info-row">
+                    <span className="settings-label">Data Source</span>
+                    <a
+                      href="https://communitycrimemap.com/?address=Jupiter,FL"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="settings-link"
+                    >
+                      LexisNexis Community Crime Map ↗
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <div className="settings-card">
+                <div className="settings-card-title">
+                  <h2>Newsworthy Crime Types</h2>
+                </div>
+                <div className="settings-card-body">
+                  <p className="settings-description">These crime types will be flagged for article generation:</p>
+                  <div className="crime-types-grid">
+                    {['Assault', 'Aggravated Assault', 'Robbery', 'Burglary', 'Motor Vehicle Theft', 'Arson', 'Homicide', 'Kidnapping', 'Weapons Violation', 'Sexual Assault'].map(crime => (
+                      <label key={crime} className="crime-type-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={localSettings.newsworthyCrimes?.includes(crime) ?? true}
+                          onChange={(e) => {
+                            const crimes = localSettings.newsworthyCrimes || [];
+                            if (e.target.checked) {
+                              setLocalSettings({ ...localSettings, newsworthyCrimes: [...crimes, crime] });
+                            } else {
+                              setLocalSettings({ ...localSettings, newsworthyCrimes: crimes.filter(c => c !== crime) });
+                            }
+                          }}
+                        />
+                        {crime}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'discarded' && (
+            <div className="settings-page">
+              <div className="settings-page-title">
+                <h1>Discarded Articles</h1>
+                <p>Crime Watch articles that have been discarded</p>
+              </div>
+
+              <div className="settings-card">
+                <div className="settings-card-title">
+                  <h2>Trash</h2>
+                  <span className="member-count-badge">{trashCount}</span>
+                </div>
+                <div className="settings-card-body no-padding">
+                  {trashCount === 0 ? (
+                    <div className="empty-trash-section">
+                      <span className="trash-icon-large">🗑</span>
+                      <h3>No discarded articles</h3>
+                      <p>Discarded Crime Watch articles will appear here</p>
+                    </div>
+                  ) : (
+                    <div className="discarded-articles-list">
+                      {discardedArticles.map((article) => (
+                        <div key={article.id} className="discarded-article-row">
+                          <div className="discarded-article-info">
+                            <h4>{article.headline || 'Untitled Article'}</h4>
+                            <p>{article.summary || article.body?.substring(0, 100) || 'No content'}</p>
+                            <span className="discarded-meta">
+                              Discarded {formatRelativeTime(article.updatedAt || article.createdAt)}
+                            </span>
+                          </div>
+                          <div className="discarded-article-actions">
+                            <button
+                              className="btn-restore"
+                              onClick={() => onRestoreArticle(article.id)}
+                              title="Restore to drafts"
+                            >
+                              ↩ Restore
+                            </button>
+                            <button
+                              className="btn-delete-permanent"
+                              onClick={() => onDeleteArticle(article.id)}
+                              title="Delete permanently"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1622,71 +1793,192 @@ function CrimeWatchSettingsView({ settings, onSave }) {
 
 // Crime Incident List View
 function CrimeIncidentListView({ incidents, onSelectIncident }) {
+  // Format date for display
+  const formatDate = (dateStr) => {
+    if (!dateStr) return { month: '---', day: '--' };
+    const date = new Date(dateStr);
+    const month = date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+    const day = date.getDate();
+    return { month, day };
+  };
+
   if (!incidents || incidents.length === 0) {
     return (
       <div className="empty-state">
-        <span className="empty-icon">🚔</span>
         <h3>No crime incidents</h3>
         <p>Click "Run Agent" to fetch recent crime data from Jupiter, FL</p>
       </div>
     );
   }
 
-  // Group incidents by date
-  const groupedByDate = incidents.reduce((acc, incident) => {
-    const date = new Date(incident.dateTime).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(incident);
-    return acc;
-  }, {});
+  // Sort incidents by date (newest first)
+  const sortedIncidents = [...incidents].sort((a, b) =>
+    new Date(b.dateTime) - new Date(a.dateTime)
+  );
 
   return (
-    <div className="incidents-list">
-      {Object.entries(groupedByDate).map(([date, dateIncidents]) => (
-        <div key={date} className="incidents-date-group">
-          <h3 className="incidents-date-header">{date}</h3>
-          <div className="incidents-grid">
-            {dateIncidents.map((incident) => (
-              <div
-                key={incident.id || incident.referenceId}
-                className="incident-card"
-                onClick={() => onSelectIncident?.(incident)}
-              >
-                <div className="incident-type">
-                  <span className={`incident-severity ${getSeverityClass(incident.crimeClass)}`}>
-                    {incident.crimeClass || 'Unknown'}
-                  </span>
+    <div className="incidents-section">
+      <div className="meetings-tabs">
+        <button className="meetings-tab active">
+          Recent Incidents
+          <span className="tab-count">{incidents.length}</span>
+        </button>
+      </div>
+
+      <div className="incidents-list-view">
+        {sortedIncidents.map((incident) => {
+          const dateFormatted = formatDate(incident.dateTime);
+          const severity = getSeverityClass(incident.crimeClass);
+          const timeStr = new Date(incident.dateTime).toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          });
+
+          return (
+            <div
+              key={incident.id || incident.referenceId}
+              className="incident-row clickable"
+              onClick={() => onSelectIncident?.(incident)}
+            >
+              <div className="incident-row-main">
+                <div className="incident-row-left">
+                  <div className={`incident-date-block severity-${severity}`}>
+                    <span className="date-month">{dateFormatted.month}</span>
+                    <span className="date-day">{dateFormatted.day}</span>
+                  </div>
+                  <div className="incident-row-info">
+                    <h4>{incident.crime || 'Unknown Crime'}</h4>
+                    <div className="incident-meta">
+                      <span className={`incident-badge severity-${severity}`}>
+                        {incident.crimeClass || 'Unknown'}
+                      </span>
+                      <span className="incident-time-badge">{timeStr}</span>
+                      {incident.locationType && (
+                        <span className="incident-location-badge">{incident.locationType}</span>
+                      )}
+                    </div>
+                    <div className="incident-address">
+                      {incident.address || 'Location unknown'}
+                    </div>
+                  </div>
                 </div>
-                <h4 className="incident-crime">{incident.crime || 'Unknown Crime'}</h4>
-                <div className="incident-details">
-                  <span className="incident-location">{incident.address || 'Location unknown'}</span>
-                  <span className="incident-time">
-                    {new Date(incident.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                  </span>
-                </div>
-                {incident.locationType && (
-                  <span className="incident-location-type">{incident.locationType}</span>
-                )}
+                <span className="view-arrow">→</span>
               </div>
-            ))}
-          </div>
-        </div>
-      ))}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
 function getSeverityClass(crimeClass) {
-  const high = ['Assault', 'Robbery', 'Homicide', 'Kidnapping', 'Sexual Assault', 'Arson'];
+  const high = ['Assault', 'Robbery', 'Homicide', 'Kidnapping', 'Sexual Assault', 'Arson', 'Aggravated'];
   const medium = ['Burglary', 'Motor Vehicle Theft', 'Weapons Violation', 'Theft'];
   if (high.some(c => crimeClass?.includes(c))) return 'high';
   if (medium.some(c => crimeClass?.includes(c))) return 'medium';
   return 'low';
+}
+
+// Crime Incident Detail View - similar to MeetingDetailView
+function CrimeIncidentDetailView({ incident, onBack, onGenerateArticle }) {
+  const [generating, setGenerating] = useState(false);
+
+  const formatDateTime = (dateStr) => {
+    const date = new Date(dateStr);
+    return {
+      date: date.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      }),
+      time: date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      })
+    };
+  };
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    try {
+      await onGenerateArticle(incident);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const dateTime = formatDateTime(incident.dateTime);
+  const severity = getSeverityClass(incident.crimeClass);
+
+  return (
+    <div className="incident-detail-view">
+      <header className="cms-header">
+        <div className="cms-left">
+          <button className="btn-back" onClick={onBack}>← Back to Incidents</button>
+        </div>
+      </header>
+
+      <div className="incident-detail-content">
+        <div className="incident-detail-header">
+          <div className={`incident-date-large severity-${severity}`}>
+            <span className="date-month-lg">
+              {new Date(incident.dateTime).toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}
+            </span>
+            <span className="date-day-lg">
+              {new Date(incident.dateTime).getDate()}
+            </span>
+          </div>
+          <div className="incident-title-block">
+            <h1>{incident.crime || 'Unknown Crime'}</h1>
+            <p>{dateTime.date} at {dateTime.time}</p>
+          </div>
+        </div>
+
+        <div className="incident-detail-body">
+          <div className="incident-info-grid">
+            <div className="incident-info-item">
+              <label>Crime Type</label>
+              <span className={`incident-badge-lg severity-${severity}`}>
+                {incident.crimeClass || 'Unknown'}
+              </span>
+            </div>
+            <div className="incident-info-item">
+              <label>Location Type</label>
+              <span>{incident.locationType || 'Not specified'}</span>
+            </div>
+            <div className="incident-info-item full-width">
+              <label>Address</label>
+              <span>{incident.address || 'Address not available'}</span>
+            </div>
+            <div className="incident-info-item">
+              <label>Agency</label>
+              <span>{incident.agency || 'Jupiter Police'}</span>
+            </div>
+            <div className="incident-info-item">
+              <label>Reference ID</label>
+              <span className="reference-id">{incident.referenceId || 'N/A'}</span>
+            </div>
+          </div>
+
+          <div className="incident-actions-panel">
+            <h3>Generate Article</h3>
+            <p>Create a news brief from this incident for publication.</p>
+            <button
+              className="btn-primary-lg"
+              onClick={handleGenerate}
+              disabled={generating}
+            >
+              {generating ? 'Generating...' : 'Generate Crime Brief'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function TrashView({ discardedArticles, onRestoreArticle, onDeleteArticle, onBack }) {
@@ -2326,25 +2618,55 @@ function MeetingDetailView({ meeting, onBack, onSelectIdea, onGenerateArticle })
   const [expandedIdea, setExpandedIdea] = useState(null);
   const [ideas, setIdeas] = useState([]);
   const [loadingIdeas, setLoadingIdeas] = useState(true);
+  const [reprocessing, setReprocessing] = useState(false);
 
   // Fetch ideas specific to this meeting's videoId
-  useEffect(() => {
-    async function fetchMeetingIdeas() {
-      setLoadingIdeas(true);
-      try {
-        const videoId = meeting.videoId || meeting.id;
-        const res = await fetch(`${API_URL}/agents/town-meeting/ideas?videoId=${videoId}`);
-        const data = await res.json();
-        setIdeas(data.ideas || []);
-      } catch (err) {
-        console.error('Failed to fetch meeting ideas:', err);
-        setIdeas([]);
-      } finally {
-        setLoadingIdeas(false);
-      }
+  const fetchMeetingIdeas = async () => {
+    setLoadingIdeas(true);
+    try {
+      const videoId = meeting.videoId || meeting.id;
+      const res = await fetch(`${API_URL}/agents/town-meeting/ideas?videoId=${videoId}`);
+      const data = await res.json();
+      setIdeas(data.ideas || []);
+    } catch (err) {
+      console.error('Failed to fetch meeting ideas:', err);
+      setIdeas([]);
+    } finally {
+      setLoadingIdeas(false);
     }
+  };
+
+  useEffect(() => {
     fetchMeetingIdeas();
   }, [meeting.videoId, meeting.id]);
+
+  // Reprocess meeting to regenerate ideas
+  const handleReprocess = async () => {
+    setReprocessing(true);
+    try {
+      const videoId = meeting.videoId || meeting.id;
+      const res = await fetch(`${API_URL}/agents/town-meeting/reprocess`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId })
+      });
+      if (res.ok) {
+        // Poll for completion
+        const checkInterval = setInterval(async () => {
+          const statusRes = await fetch(`${API_URL}/agents/status`);
+          const status = await statusRes.json();
+          if (!status.townMeeting?.running) {
+            clearInterval(checkInterval);
+            setReprocessing(false);
+            fetchMeetingIdeas(); // Refresh ideas
+          }
+        }, 3000);
+      }
+    } catch (err) {
+      console.error('Failed to reprocess meeting:', err);
+      setReprocessing(false);
+    }
+  };
 
   const toggleIdea = (ideaId) => {
     setSelectedIdeas(prev =>
@@ -2455,7 +2777,20 @@ function MeetingDetailView({ meeting, onBack, onSelectIdea, onGenerateArticle })
           ) : ideas.length === 0 ? (
             <div className="empty-ideas-full">
               <h3>No Article Ideas</h3>
-              <p>Run the agent to generate article ideas from this meeting.</p>
+              <p>Ideas may have been lost during a deployment. Click below to reprocess this meeting and regenerate ideas.</p>
+              <button
+                className="btn-primary-lg"
+                onClick={handleReprocess}
+                disabled={reprocessing}
+                style={{ marginTop: '16px' }}
+              >
+                {reprocessing ? 'Reprocessing...' : 'Reprocess Meeting'}
+              </button>
+              {reprocessing && (
+                <p style={{ marginTop: '12px', fontSize: '13px', color: 'var(--gray-500)' }}>
+                  This may take a few minutes. The meeting video will be re-downloaded, transcribed, and analyzed.
+                </p>
+              )}
             </div>
           ) : (
             ideas.map(idea => (

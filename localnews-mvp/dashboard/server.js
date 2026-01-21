@@ -16,6 +16,164 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 import express from 'express';
 import cors from 'cors';
 import { google } from 'googleapis';
+import { createClient } from '@supabase/supabase-js';
+
+// Supabase setup
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+
+if (supabase) {
+  console.log('✅ Supabase client initialized');
+} else {
+  console.log('⚠️ Supabase not configured - using Google Sheets only');
+}
+
+/**
+ * SUPABASE DUAL-WRITE HELPERS
+ * These functions write to Supabase in parallel with Google Sheets
+ * During migration, Sheets remains the source of truth for reads
+ */
+
+// Save article to Supabase (dual-write)
+async function saveArticleToSupabase(article) {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('articles')
+      .upsert({
+        agent_source: article.agentSource,
+        headline: article.headline,
+        body: article.body,
+        summary: article.summary,
+        twitter: article.twitter,
+        facebook: article.facebook,
+        instagram: article.instagram,
+        source_url: article.sourceUrl,
+        status: article.status || 'draft'
+      }, { onConflict: 'source_url' })
+      .select();
+
+    if (error) {
+      console.error('Supabase article save error:', error.message);
+      return null;
+    }
+    console.log(`📦 Article saved to Supabase: ${article.headline?.substring(0, 50)}...`);
+    return data;
+  } catch (e) {
+    console.error('Supabase article save failed:', e.message);
+    return null;
+  }
+}
+
+// Save meeting to Supabase (dual-write)
+async function saveMeetingToSupabase(meeting) {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('meetings')
+      .upsert({
+        video_id: meeting.videoId,
+        title: meeting.type || meeting.description,
+        date: meeting.date,
+        duration: meeting.duration || null,
+        status: meeting.status || 'pending',
+        ideas_count: meeting.ideasCount || 0
+      }, { onConflict: 'video_id' })
+      .select();
+
+    if (error) {
+      console.error('Supabase meeting save error:', error.message);
+      return null;
+    }
+    console.log(`📦 Meeting saved to Supabase: ${meeting.videoId}`);
+    return data;
+  } catch (e) {
+    console.error('Supabase meeting save failed:', e.message);
+    return null;
+  }
+}
+
+// Save ideas to Supabase (dual-write)
+async function saveIdeasToSupabase(videoId, ideas) {
+  if (!supabase) return null;
+  try {
+    // Delete existing ideas for this video first
+    await supabase.from('ideas').delete().eq('video_id', videoId);
+
+    // Insert new ideas
+    const rows = ideas.map((idea, index) => ({
+      video_id: videoId,
+      idea_id: idea.id?.toString() || (index + 1).toString(),
+      title: idea.title,
+      summary: idea.summary || idea.event,
+      angles: idea.angles || []
+    }));
+
+    const { data, error } = await supabase.from('ideas').insert(rows).select();
+
+    if (error) {
+      console.error('Supabase ideas save error:', error.message);
+      return null;
+    }
+    console.log(`📦 ${ideas.length} ideas saved to Supabase for video ${videoId}`);
+    return data;
+  } catch (e) {
+    console.error('Supabase ideas save failed:', e.message);
+    return null;
+  }
+}
+
+// Update article status in Supabase
+async function updateArticleStatusInSupabase(sourceUrl, status) {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('articles')
+      .update({ status })
+      .eq('source_url', sourceUrl)
+      .select();
+
+    if (error) {
+      console.error('Supabase status update error:', error.message);
+      return null;
+    }
+    return data;
+  } catch (e) {
+    console.error('Supabase status update failed:', e.message);
+    return null;
+  }
+}
+
+// Get transcript from Supabase (fallback when local file doesn't exist)
+async function getTranscriptFromSupabase(videoId) {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('transcripts')
+      .select('*')
+      .eq('video_id', videoId)
+      .single();
+
+    if (error) {
+      console.error('Supabase transcript fetch error:', error.message);
+      return null;
+    }
+    if (data) {
+      console.log(`☁️  Transcript loaded from Supabase for video ${videoId}`);
+      return {
+        videoId: data.video_id,
+        fullText: data.full_text,
+        segments: data.segments,
+        durationMinutes: Math.round(data.duration_seconds / 60)
+      };
+    }
+    return null;
+  } catch (e) {
+    console.error('Supabase transcript fetch failed:', e.message);
+    return null;
+  }
+}
 
 // Track agent run status
 const agentStatus = {
@@ -25,6 +183,7 @@ const agentStatus = {
 
 const SETTINGS_FILE = path.join(__dirname, '..', 'data', 'town_meeting_settings.json');
 const IDEAS_FILE = path.join(__dirname, '..', 'data', 'swagit', 'current_ideas.json');
+const IDEAS_SHEET_NAME = 'Ideas';
 
 // Load saved status from file
 const statusFile = path.join(__dirname, '..', 'agent-status.json');
@@ -214,6 +373,9 @@ async function saveMeetingToSheets(meeting) {
       });
     }
 
+    // Dual-write to Supabase
+    saveMeetingToSupabase(meeting);
+
     return true;
   } catch (e) {
     console.error('Failed to save meeting to Sheets:', e.message);
@@ -272,6 +434,165 @@ async function syncLocalMeetingsToSheets() {
 
 // Initialize on startup
 initMeetingsSheet().then(() => syncLocalMeetingsToSheets());
+
+/**
+ * IDEAS PERSISTENCE - Google Sheets as primary storage
+ * This ensures ideas survive deployments on Railway
+ */
+
+// Initialize Ideas sheet if it doesn't exist
+async function initIdeasSheet() {
+  try {
+    const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
+    const sheetExists = spreadsheet.data.sheets.some(s => s.properties.title === IDEAS_SHEET_NAME);
+
+    if (!sheetExists) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: [{
+            addSheet: {
+              properties: { title: IDEAS_SHEET_NAME }
+            }
+          }]
+        }
+      });
+
+      // Add header row
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${IDEAS_SHEET_NAME}!A1:F1`,
+        valueInputOption: 'RAW',
+        requestBody: {
+          values: [['VideoID', 'IdeaID', 'Title', 'Summary', 'Angles', 'CreatedAt']]
+        }
+      });
+      console.log('Created Ideas sheet in Google Sheets');
+    }
+  } catch (e) {
+    console.error('Failed to initialize Ideas sheet:', e.message);
+  }
+}
+
+// Get ideas for a specific video from Google Sheets
+async function getIdeasFromSheets(videoId) {
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${IDEAS_SHEET_NAME}!A:F`
+    });
+
+    const rows = response.data.values || [];
+    if (rows.length <= 1) return [];
+
+    return rows.slice(1)
+      .filter(row => row[0] === videoId)
+      .map(row => ({
+        id: parseInt(row[1]) || 0,
+        title: row[2] || '',
+        summary: row[3] || '',
+        angles: JSON.parse(row[4] || '[]'),
+        createdAt: row[5] || null
+      }));
+  } catch (e) {
+    console.error('Failed to get ideas from Sheets:', e.message);
+    return [];
+  }
+}
+
+// Save ideas for a video to Google Sheets
+async function saveIdeasToSheets(videoId, ideas) {
+  try {
+    // First, remove existing ideas for this video
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${IDEAS_SHEET_NAME}!A:F`
+    });
+
+    const rows = response.data.values || [];
+    const rowsToDelete = [];
+
+    rows.forEach((row, index) => {
+      if (index > 0 && row[0] === videoId) {
+        rowsToDelete.push(index + 1); // +1 for 1-based indexing
+      }
+    });
+
+    // Clear existing rows for this video (set to empty)
+    for (const rowIndex of rowsToDelete.reverse()) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${IDEAS_SHEET_NAME}!A${rowIndex}:F${rowIndex}`,
+        valueInputOption: 'RAW',
+        requestBody: { values: [['', '', '', '', '', '']] }
+      });
+    }
+
+    // Append new ideas
+    if (ideas.length > 0) {
+      const newRows = ideas.map(idea => [
+        videoId,
+        idea.id.toString(),
+        idea.title || '',
+        idea.summary || idea.event || '',
+        JSON.stringify(idea.angles || []),
+        new Date().toISOString()
+      ]);
+
+      await sheets.spreadsheets.values.append({
+        spreadsheetId,
+        range: `${IDEAS_SHEET_NAME}!A:F`,
+        valueInputOption: 'RAW',
+        insertDataOption: 'INSERT_ROWS',
+        requestBody: { values: newRows }
+      });
+    }
+
+    // Dual-write to Supabase
+    saveIdeasToSupabase(videoId, ideas);
+
+    console.log(`Saved ${ideas.length} ideas for video ${videoId} to Sheets`);
+    return true;
+  } catch (e) {
+    console.error('Failed to save ideas to Sheets:', e.message);
+    return false;
+  }
+}
+
+// Sync local ideas files to Sheets on startup
+async function syncLocalIdeasToSheets() {
+  const dataDir = path.join(__dirname, '..', 'data', 'swagit');
+  try {
+    if (!fs.existsSync(dataDir)) return;
+
+    const files = fs.readdirSync(dataDir);
+    const ideasFiles = files.filter(f => f.match(/^\d+_ideas\.json$/));
+
+    let synced = 0;
+    for (const file of ideasFiles) {
+      const videoId = file.match(/^(\d+)_ideas\.json$/)[1];
+      const existingIdeas = await getIdeasFromSheets(videoId);
+
+      if (existingIdeas.length === 0) {
+        const filePath = path.join(dataDir, file);
+        const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+        if (data.ideas && data.ideas.length > 0) {
+          await saveIdeasToSheets(videoId, data.ideas);
+          synced++;
+        }
+      }
+    }
+
+    if (synced > 0) {
+      console.log(`Synced ${synced} ideas files to Google Sheets`);
+    }
+  } catch (e) {
+    console.error('Failed to sync local ideas:', e.message);
+  }
+}
+
+// Initialize Ideas sheet on startup
+initIdeasSheet().then(() => syncLocalIdeasToSheets());
 
 /**
  * GET /api/articles
@@ -446,6 +767,14 @@ app.patch('/api/articles/:id/status', async (req, res) => {
     const rowId = parseInt(req.params.id);
     const { status } = req.body;
 
+    // Get the source_url for this article first (for Supabase update)
+    const currentRow = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${SHEET_NAME}!A${rowId}:J${rowId}`
+    });
+    const sourceUrl = currentRow.data.values?.[0]?.[COLUMNS.SOURCE_URL];
+
+    // Update Google Sheets
     await sheets.spreadsheets.values.update({
       spreadsheetId,
       range: `${SHEET_NAME}!I${rowId}`,
@@ -454,6 +783,11 @@ app.patch('/api/articles/:id/status', async (req, res) => {
         values: [[status]]
       }
     });
+
+    // Dual-write to Supabase
+    if (sourceUrl) {
+      updateArticleStatusInSupabase(sourceUrl, status);
+    }
 
     res.json({ success: true, id: rowId, status });
   } catch (error) {
@@ -1053,23 +1387,62 @@ app.put('/api/meetings/update-ideas-count', async (req, res) => {
 });
 
 /**
+ * POST /api/agents/town-meeting/ideas
+ * Save ideas to Google Sheets for persistence
+ * Body: { videoId, ideas }
+ */
+app.post('/api/agents/town-meeting/ideas', async (req, res) => {
+  try {
+    const { videoId, ideas } = req.body;
+
+    if (!videoId || !ideas) {
+      return res.status(400).json({ error: 'videoId and ideas are required' });
+    }
+
+    // Save to Google Sheets immediately
+    const success = await saveIdeasToSheets(videoId, ideas);
+
+    if (success) {
+      console.log(`Persisted ${ideas.length} ideas for video ${videoId} to Sheets`);
+      res.json({ success: true, videoId, count: ideas.length });
+    } else {
+      res.status(500).json({ error: 'Failed to save ideas to Sheets' });
+    }
+  } catch (e) {
+    console.error('Error saving ideas:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
  * GET /api/agents/town-meeting/ideas
  * Query params:
  *   - videoId: Load ideas for a specific meeting (optional)
  */
-app.get('/api/agents/town-meeting/ideas', (req, res) => {
+app.get('/api/agents/town-meeting/ideas', async (req, res) => {
   try {
     const { videoId } = req.query;
     const dataDir = path.join(__dirname, '..', 'data', 'swagit');
 
-    // If videoId provided, load that meeting's specific ideas file
+    // If videoId provided, load that meeting's specific ideas
     if (videoId) {
+      // First check local file
       const meetingIdeasFile = path.join(dataDir, `${videoId}_ideas.json`);
       if (fs.existsSync(meetingIdeasFile)) {
         const ideas = JSON.parse(fs.readFileSync(meetingIdeasFile, 'utf-8'));
+        // Also save to Sheets for persistence
+        saveIdeasToSheets(videoId, ideas.ideas || []);
         return res.json(ideas);
       }
-      // No ideas file for this meeting yet
+
+      // If not on disk, check Google Sheets (ideas might have been saved from another deployment)
+      const sheetIdeas = await getIdeasFromSheets(videoId);
+      if (sheetIdeas.length > 0) {
+        console.log(`Loaded ${sheetIdeas.length} ideas for video ${videoId} from Sheets`);
+        return res.json({ ideas: sheetIdeas, metadata: { videoId, source: 'sheets' } });
+      }
+
+      // No ideas found anywhere
       return res.json({ ideas: [], metadata: { videoId, message: 'No ideas generated for this meeting' } });
     }
 
@@ -1192,8 +1565,20 @@ app.post('/api/agents/town-meeting/generate-article', async (req, res) => {
       let transcriptPath;
       if (videoId) {
         transcriptPath = path.join(dataDir, `${videoId}_transcript.json`);
+
+        // If local file doesn't exist, try to get from Supabase
         if (!fs.existsSync(transcriptPath)) {
-          throw new Error(`Transcript not found for video ${videoId}`);
+          console.log(`Local transcript not found, checking Supabase for video ${videoId}...`);
+          const supabaseTranscript = await getTranscriptFromSupabase(videoId);
+
+          if (supabaseTranscript) {
+            // Save to local filesystem for the generator script to use
+            fs.mkdirSync(dataDir, { recursive: true });
+            fs.writeFileSync(transcriptPath, JSON.stringify(supabaseTranscript, null, 2));
+            console.log(`☁️  Restored transcript from Supabase to: ${transcriptPath}`);
+          } else {
+            throw new Error(`Transcript not found for video ${videoId} (checked local + Supabase)`);
+          }
         }
       } else {
         // Fallback to latest transcript
@@ -1298,6 +1683,103 @@ app.get('/api/agents/crime-watch/incidents', (req, res) => {
     });
   } catch (e) {
     console.error('Error fetching crime incidents:', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * POST /api/agents/crime-watch/generate-article
+ * Generate a crime brief article from a single incident
+ */
+app.post('/api/agents/crime-watch/generate-article', async (req, res) => {
+  const { incident } = req.body;
+
+  if (!incident) {
+    return res.status(400).json({ error: 'Incident data required' });
+  }
+
+  try {
+    const agentDir = path.join(__dirname, '..', 'agents', 'crime-watch');
+    const promptPath = path.join(__dirname, '..', 'prompts', 'generate-crime-brief.txt');
+
+    // Load the prompt
+    let systemPrompt = '';
+    if (fs.existsSync(promptPath)) {
+      systemPrompt = fs.readFileSync(promptPath, 'utf-8');
+    } else {
+      systemPrompt = `You are a local news journalist for Jupiter, FL. Generate a brief, factual news article about the following crime incident. Include a headline, brief article body (2-3 paragraphs), and social media posts for Twitter and Facebook. Output as JSON with fields: headline, brief, social_posts (with twitter and facebook fields).`;
+    }
+
+    // Format incident for generation
+    const date = new Date(incident.dateTime);
+    const dateStr = date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+    const timeStr = date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+
+    let location = incident.address || 'Jupiter area';
+    location = location.replace(/^\\d+\\s+/, '').replace(/\\s+\\d+$/, '');
+
+    const incidentText = `## Incident Details
+- Crime Type: ${incident.crime || incident.crimeClass || 'Unknown'}
+- Crime Class: ${incident.crimeClass || 'Unknown'}
+- Date: ${dateStr}
+- Time: ${timeStr}
+- Location Area: ${location}
+- Location Type: ${incident.locationType || 'Not specified'}
+- Agency: ${incident.agency || 'Jupiter Police'}
+- Reference ID: ${incident.referenceId || 'N/A'}`;
+
+    // Use OpenAI to generate the article
+    const OpenAI = (await import('openai')).default;
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Generate a crime brief for this incident:\n\n${incidentText}` }
+      ],
+      temperature: 0.5,
+      max_tokens: 800,
+      response_format: { type: 'json_object' }
+    });
+
+    const generated = JSON.parse(response.choices[0].message.content);
+
+    // Save to Google Sheets
+    const { appendArticlesWithDedup } = await import('../lib/sheets.js');
+    const sheetArticle = {
+      agentSource: 'crime-watch',
+      headline: generated.headline || '',
+      body: generated.brief || '',
+      summary: generated.brief?.split('.')[0] + '.' || '',
+      twitter: generated.social_posts?.twitter || '',
+      facebook: generated.social_posts?.facebook || '',
+      instagram: generated.social_posts?.nextdoor || '',
+      sourceUrl: `crime-ref:${incident.referenceId}`,
+      status: 'draft'
+    };
+
+    const result = await appendArticlesWithDedup([sheetArticle], 'crime-watch');
+
+    // Dual-write to Supabase
+    saveArticleToSupabase(sheetArticle);
+
+    res.json({
+      success: true,
+      article: generated,
+      sheetsResult: result
+    });
+  } catch (e) {
+    console.error('Error generating crime article:', e);
     res.status(500).json({ error: e.message });
   }
 });

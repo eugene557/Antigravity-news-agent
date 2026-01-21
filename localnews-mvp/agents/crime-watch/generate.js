@@ -22,29 +22,32 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// Crime types considered newsworthy
-const NEWSWORTHY_CRIMES = [
-  'Assault',
-  'Aggravated Assault',
-  'Sexual Assault',
-  'Sexual Offense',
-  'Robbery',
-  'Burglary',
-  'Burglary of Vehicle',
-  'Motor Vehicle Theft',
-  'Arson',
-  'Homicide',
-  'Kidnapping',
-  'Weapons Violation'
-];
+// Load settings from file, with defaults
+const SETTINGS_FILE = path.join(__dirname, '../../data/crime_watch_settings.json');
 
-// Crime types to skip (minor incidents)
-const SKIP_CRIMES = [
-  'Vandalism',
-  'Trespassing',
-  'Disturbing the Peace',
-  'Other'
-];
+function loadSettings() {
+  const defaults = {
+    newsworthyCrimes: ['Assault', 'Robbery', 'Burglary', 'Motor Vehicle Theft', 'Arson', 'Homicide'],
+    skipCrimes: ['Vandalism', 'Trespassing', 'Disturbing the Peace', 'Other']
+  };
+
+  try {
+    if (fs.existsSync(SETTINGS_FILE)) {
+      const settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf-8'));
+      return {
+        newsworthyCrimes: settings.newsworthyCrimes || defaults.newsworthyCrimes,
+        skipCrimes: settings.skipCrimes || defaults.skipCrimes
+      };
+    }
+  } catch (e) {
+    console.warn('⚠️ Could not load settings, using defaults:', e.message);
+  }
+  return defaults;
+}
+
+const settings = loadSettings();
+const NEWSWORTHY_CRIMES = settings.newsworthyCrimes;
+const SKIP_CRIMES = settings.skipCrimes;
 
 async function loadPrompt() {
   const promptPath = path.join(__dirname, '../../prompts/generate-crime-brief.txt');
@@ -152,6 +155,7 @@ async function main() {
   }
 
   console.log('🚨 Crime Watch Article Generator\n');
+  console.log(`⚙️  Settings: ${NEWSWORTHY_CRIMES.length} newsworthy types, ${SKIP_CRIMES.length} skip types`);
 
   try {
     // Load prompt and incidents

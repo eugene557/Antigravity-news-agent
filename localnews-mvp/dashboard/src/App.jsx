@@ -383,16 +383,16 @@ function App() {
     // Wastewater Health completed
     if (prevRunning.wastewaterHealth && !agentStatus.wastewaterHealth.running) {
       if (agentStatus.wastewaterHealth.error) {
-        setResultModal({ type: 'error', title: 'Health Monitor Failed', message: agentStatus.wastewaterHealth.error });
+        setResultModal({ type: 'error', title: 'Wastewater Watch Failed', message: agentStatus.wastewaterHealth.error });
       } else if (agentStatus.wastewaterHealth.lastResult) {
         const result = agentStatus.wastewaterHealth.lastResult;
-        setResultModal({ type: result.type, title: 'Health Monitor Complete', message: result.message, count: result.count });
+        setResultModal({ type: result.type, title: 'Wastewater Watch Complete', message: result.message, count: result.count });
         if (result.count > 0) {
           fetchArticles();
           fetchWastewaterData();
         }
       } else {
-        setResultModal({ type: 'success', title: 'Health Monitor Complete', message: 'Agent completed successfully' });
+        setResultModal({ type: 'success', title: 'Wastewater Watch Complete', message: 'Agent completed successfully' });
       }
     }
 
@@ -870,7 +870,7 @@ function App() {
               className={`nav-item nav-parent ${wastewaterExpanded ? 'expanded' : ''}`}
               onClick={() => setWastewaterExpanded(!wastewaterExpanded)}
             >
-              <span className="nav-parent-text">Health Monitor Agent</span>
+              <span className="nav-parent-text">Wastewater Watch Agent</span>
               <span className={`nav-arrow ${wastewaterExpanded ? 'expanded' : ''}`}>▶</span>
             </button>
             {wastewaterExpanded && (
@@ -1011,12 +1011,12 @@ function App() {
             <header className="feed-header">
               <div className="feed-title-row">
                 <div className="feed-title-block">
-                  <h2>Wastewater Health Monitor</h2>
+                  <h2>Wastewater Watch - Disease Surveillance</h2>
                   <p className="feed-subtitle">Palm Beach County Disease Surveillance</p>
                 </div>
                 <div className="feed-actions">
                   <AgentControl
-                    name="Health Agent"
+                    name="Wastewater Agent"
                     status={agentStatus.wastewaterHealth}
                     onRun={() => runAgent('wastewater-health')}
                   />
@@ -1039,7 +1039,7 @@ function App() {
                     {viewSource === 'town-meeting' && townHallView === 'meetings' && 'Meetings'}
                     {viewSource === 'town-meeting' && townHallView === 'articles' && 'Town Hall Articles'}
                     {viewSource === 'crime-watch' && crimeWatchView === 'articles' && 'Crime Watch Articles'}
-                    {viewSource === 'wastewater-health' && wastewaterView === 'articles' && 'Health Monitor Articles'}
+                    {viewSource === 'wastewater-health' && wastewaterView === 'articles' && 'Wastewater Watch Articles'}
                   </h2>
                 </div>
                 <div className="feed-actions">
@@ -1059,7 +1059,7 @@ function App() {
                   )}
                   {viewSource === 'wastewater-health' && (
                     <AgentControl
-                      name="Health Agent"
+                      name="Wastewater Agent"
                       status={agentStatus.wastewaterHealth}
                       onRun={() => runAgent('wastewater-health')}
                     />

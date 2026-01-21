@@ -1916,9 +1916,9 @@ app.post('/api/agents/wastewater-health/run', async (req, res) => {
       agentStatus.wastewaterHealth.running = false;
       agentStatus.wastewaterHealth.lastResult = parseAgentResult(result.stdout, 'wastewater-health');
       saveStatus();
-      console.log('Wastewater health agent completed successfully');
+      console.log('Wastewater Watch agent completed successfully');
     } catch (error) {
-      console.error('Wastewater health agent failed:', error.message);
+      console.error('Wastewater Watch agent failed:', error.message);
       agentStatus.wastewaterHealth.running = false;
       agentStatus.wastewaterHealth.error = error.message;
       saveStatus();
